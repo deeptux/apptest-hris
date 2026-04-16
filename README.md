@@ -43,7 +43,9 @@ Replace the placeholder in `appsettings.Production.json` before publishing to pr
 
 | Item | Notes |
 |------|--------|
-| **.NET SDK** | Repo pins SDK **9** via [`global.json`](global.json). Render build image should install .NET 9 and run `dotnet publish` accordingly. |
+| **API Web Service** | Use **Docker** (not Node). **Dockerfile path:** `./Dockerfile` at repo root. Leave Render **build command** empty — the image build runs `dotnet publish` inside Docker. See [`DEPLOYMENT.md`](DEPLOYMENT.md) §0. |
+| **PORT** | Render sets **`PORT`**; the API binds **`http://0.0.0.0:{PORT}`** when it is set ([`Program.cs`](src/Hris.Demo.Api/Program.cs)). |
+| **.NET SDK** | For **local** / CI builds, use SDK **9** ([`global.json`](global.json)). The Docker image brings its own SDK for the API service. |
 | **API secrets** | Set `Ai__Gemini__ApiKey` (and any other secrets) in the **API** web service environment on Render, not in git. |
 | **CORS** | Set **`CORS_ORIGINS`** on the API to your Blazor static site origin(s), comma-separated, e.g. `https://your-client.onrender.com`. Overrides `Cors:Origins` in appsettings when set. |
 | **Client → API URL** | Set `ApiBaseUrl` in `wwwroot/appsettings.Production.json` to your API public HTTPS URL before/during static site build. |
@@ -66,7 +68,9 @@ Replace the placeholder in `appsettings.Production.json` before publishing to pr
 | `src/Hris.Demo.Shared` | Shared models/DTOs |
 | `docs/` | **Not in git** — local canon, progress log, AI notes (see `.gitignore`). Public deploy checklist: [`DEPLOYMENT.md`](DEPLOYMENT.md). |
 | `references/` | **Not in git** — local reference files only (see `.gitignore`) |
-| `global.json` | Pins **.NET 9** SDK for CI/Render |
+| `global.json` | Pins **.NET 9** SDK for local/CI |
+| `Dockerfile` | Multi-stage build for **`Hris.Demo.Api`** (Render Web Service **Docker** runtime) |
+| `.dockerignore` | Keeps Docker build context small (excludes Client, `bin/`, `obj/`, etc.) |
 | `.env.example` | Documents env var names (secrets belong in host config, not committed `.env`) |
 
 ## License

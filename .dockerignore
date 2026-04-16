@@ -1,0 +1,34 @@
+# Git / IDE
+.git
+.gitignore
+**/.vs
+**/.vscode
+**/.idea
+.cursor
+docs
+references
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+**/publish/
+**/artifacts/
+
+# Client (not needed for API image; keeps context small)
+src/Hris.Demo.Client/
+
+# Secrets / local
+**/*.user
+**/*.pfx
+.env
+.env.*
+!.env.example
+**/secrets.json
+**/appsettings.*.local.json
+
+# Misc
+**/*.log
+**/*.tmp
+**/node_modules/
+**/TestResults/

@@ -2,6 +2,32 @@
 
 Use this with the root [`README.md`](README.md) **Deployment (Render)** section.
 
+## 0) API Web Service — Docker on Render
+
+Use a **Web Service** with **Docker** (not **Node** or a blank shell where `dotnet` is missing). The repo root [`Dockerfile`](Dockerfile) builds and runs **`Hris.Demo.Api`**.
+
+| Render field | Value |
+|----------------|--------|
+| **Environment** | **Docker** |
+| **Dockerfile path** | `./Dockerfile` (repo root) |
+| **Root directory** | `.` (repository root) |
+| **Branch** | `main` (or your deploy branch) |
+| **Auto-deploy** | On — deploy when you push to that branch |
+| **Build command** | Leave **empty** — the Dockerfile runs `dotnet restore` / `dotnet publish` inside the image. Do not set a Node/native build that runs `dotnet` on Render’s host. |
+| **`PORT`** | Set automatically by Render; the API listens on **`http://0.0.0.0:{PORT}`** when `PORT` is present ([`Program.cs`](src/Hris.Demo.Api/Program.cs)). |
+
+Still set **`CORS_ORIGINS`**, secrets (`Ai__Gemini__ApiKey`, etc.), and configure the Blazor client **`ApiBaseUrl`** as in the sections below.
+
+**Local Docker check** (requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Engine):
+
+```bash
+docker build -t hris-api-test .
+docker run --rm -e PORT=10000 -p 10000:10000 hris-api-test
+curl -sS http://localhost:10000/api/Branding
+```
+
+You should see JSON branding (HTTP 200). If you get a redirect, try `curl -L`.
+
 ## 1) Secrets
 
 - Do **not** commit `Ai:Gemini:ApiKey`, passwords, or tokens in:
@@ -31,8 +57,8 @@ Use this with the root [`README.md`](README.md) **Deployment (Render)** section.
 
 ## 5) SDK / build
 
-- Use **.NET 9** SDK for `dotnet publish` (match [`global.json`](global.json) if present, or install SDK 9 on Render).
-- Build command should target this solution/projects consistently (see README).
+- **Docker (API on Render):** The [`Dockerfile`](Dockerfile) uses **`mcr.microsoft.com/dotnet/sdk:9.0`** — no separate Render “.NET version” pick is needed for that service.
+- **Non-Docker builds:** Use **.NET 9** locally or in CI ([`global.json`](global.json)).
 
 ## 6) Smoke test (after deploy)
 
