@@ -1,8 +1,17 @@
 # Render deployment — checklist
 
-Use this with the root [`README.md`](README.md) **Deployment (Render)** section.
+Use this with the root [`README.md`](README.md) **Deployment (GitHub Pages + Render)** section.
 
-## 0) API Web Service — Docker on Render
+## 0) Client static site — GitHub Pages
+
+The Blazor WASM client is deployed by GitHub Actions on every push to `main`:
+
+- Workflow: [`.github/workflows/deploy-client-pages.yml`](.github/workflows/deploy-client-pages.yml)
+- Live URL: `https://deeptux.github.io/apptest-hris/`
+- GitHub Pages source must be **GitHub Actions** (not branch-based Pages)
+- This is a **project repo**, so production base path is **`/apptest-hris/`**. The workflow rewrites published `index.html` base href accordingly while local dev stays at `/`.
+
+## 1) API Web Service — Docker on Render
 
 Use a **Web Service** with **Docker** (not **Node** or a blank shell where `dotnet` is missing). The repo root [`Dockerfile`](Dockerfile) builds and runs **`Hris.Demo.Api`**.
 
@@ -28,7 +37,7 @@ curl -sS http://localhost:10000/api/Branding
 
 You should see JSON branding (HTTP 200). If you get a redirect, try `curl -L`.
 
-## 1) Secrets
+## 2) Secrets
 
 - Do **not** commit `Ai:Gemini:ApiKey`, passwords, or tokens in:
   - `src/Hris.Demo.Api/appsettings.json`
@@ -37,30 +46,30 @@ You should see JSON branding (HTTP 200). If you get a redirect, try `curl -L`.
 - On **Render**, set API secrets as environment variables (e.g. `Ai__Gemini__ApiKey`).
 - **Local:** `dotnet user-secrets` for the API project only.
 
-## 2) Client `ApiBaseUrl` (production)
+## 3) Client `ApiBaseUrl` (production)
 
 - Published Blazor WASM loads `wwwroot/appsettings.json`, then `wwwroot/appsettings.{Environment}.json` (see [`Program.cs`](src/Hris.Demo.Client/Program.cs)).
 - For **Production** builds, [`appsettings.Production.json`](src/Hris.Demo.Client/wwwroot/appsettings.Production.json) should contain the **public HTTPS URL** of the API (no trailing slash required; the app normalizes it).
-- Replace the placeholder `https://YOUR-API-SERVICE.onrender.com` with your real API service URL **before** or **during** CI/publish (e.g. `sed`, script, or manual edit).
+- For this repo, use `https://apptest-hris.onrender.com`. The Pages workflow enforces this in published output.
 - Document the final URLs in [`README.md`](README.md) (deployment table).
 
-## 3) API CORS
+## 4) API CORS
 
-- After the static site URL is known (e.g. `https://<client>.onrender.com`), allow it on the API.
+- After the static site URL is known, allow it on the API.
 - Prefer the **`CORS_ORIGINS`** environment variable on Render: comma-separated list, no spaces (or trim handled). Example:
-  - `CORS_ORIGINS=https://apptest-hris-client.onrender.com`
+  - `CORS_ORIGINS=https://deeptux.github.io`
 - If `CORS_ORIGINS` is unset, the API falls back to `Cors:Origins` in [`appsettings.json`](src/Hris.Demo.Api/appsettings.json) (localhost for dev).
 
-## 4) `.gitignore`
+## 5) `.gitignore`
 
 - Confirm `bin/`, `obj/`, `/references/`, `/docs/`, and secret patterns remain as in [`.gitignore`](.gitignore). Do not commit build output.
 
-## 5) SDK / build
+## 6) SDK / build
 
 - **Docker (API on Render):** The [`Dockerfile`](Dockerfile) uses **`mcr.microsoft.com/dotnet/sdk:9.0`** — no separate Render “.NET version” pick is needed for that service.
 - **Non-Docker builds:** Use **.NET 9** locally or in CI ([`global.json`](global.json)).
 
-## 6) Smoke test (after deploy)
+## 7) Smoke test (after deploy)
 
 1. Open the **static site** over **HTTPS**.
 2. Browser **DevTools → Network**: load dashboard / queues; confirm API calls return **200** (not CORS errors).

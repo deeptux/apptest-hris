@@ -11,8 +11,9 @@ const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
 const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/ ];
 const offlineAssetsExclude = [ /^service-worker\.js$/ ];
 
-// Replace with your base path if you are hosting on a subfolder. Ensure there is a trailing '/'.
-const base = "/";
+// Build base path from service worker scope so it works at "/" and "/apptest-hris/".
+const scopePath = new URL(self.registration.scope).pathname;
+const base = scopePath.endsWith('/') ? scopePath : `${scopePath}/`;
 const baseUrl = new URL(base, self.origin);
 const manifestUrlList = self.assetsManifest.assets.map(asset => new URL(asset.url, baseUrl).href);
 

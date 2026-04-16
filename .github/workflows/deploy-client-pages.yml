@@ -1,0 +1,74 @@
+name: Deploy Blazor client to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore client
+        run: dotnet restore src/Hris.Demo.Client/Hris.Demo.Client.csproj
+
+      - name: Publish client (Release)
+        run: dotnet publish src/Hris.Demo.Client/Hris.Demo.Client.csproj -c Release -o ./artifacts/client
+
+      - name: Set production API URL in published config
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          config_path = Path("artifacts/client/wwwroot/appsettings.Production.json")
+          data = json.loads(config_path.read_text(encoding="utf-8"))
+          data["ApiBaseUrl"] = "https://apptest-hris.onrender.com"
+          config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Configure base href for project Pages path
+        run: |
+          sed -i 's#<base href="/" />#<base href="/apptest-hris/" />#g' artifacts/client/wwwroot/index.html
+
+      - name: Add SPA fallback and no-jekyll marker
+        run: |
+          cp artifacts/client/wwwroot/index.html artifacts/client/wwwroot/404.html
+          touch artifacts/client/wwwroot/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/client/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

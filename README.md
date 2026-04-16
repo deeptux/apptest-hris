@@ -37,25 +37,28 @@ At runtime the WASM host loads, in order:
 
 Replace the placeholder in `appsettings.Production.json` before publishing to production, or generate that file in CI with the real API URL.
 
-## Deployment (Render)
+## Deployment (GitHub Pages + Render)
 
 **Full checklist:** [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 | Item | Notes |
 |------|--------|
+| **Client static hosting** | GitHub Pages via workflow [`.github/workflows/deploy-client-pages.yml`](.github/workflows/deploy-client-pages.yml). Every push to `main` publishes the Blazor WASM client. |
+| **Live client URL** | `https://deeptux.github.io/apptest-hris/` |
+| **Project-repo base path** | GitHub Pages serves this repo under `/apptest-hris/` (not `/`). The workflow rewrites the published `index.html` base href for production only, so localhost behavior stays unchanged. |
 | **API Web Service** | Use **Docker** (not Node). **Dockerfile path:** `./Dockerfile` at repo root. Leave Render **build command** empty — the image build runs `dotnet publish` inside Docker. See [`DEPLOYMENT.md`](DEPLOYMENT.md) §0. |
 | **PORT** | Render sets **`PORT`**; the API binds **`http://0.0.0.0:{PORT}`** when it is set ([`Program.cs`](src/Hris.Demo.Api/Program.cs)). |
 | **.NET SDK** | For **local** / CI builds, use SDK **9** ([`global.json`](global.json)). The Docker image brings its own SDK for the API service. |
 | **API secrets** | Set `Ai__Gemini__ApiKey` (and any other secrets) in the **API** web service environment on Render, not in git. |
-| **CORS** | Set **`CORS_ORIGINS`** on the API to your Blazor static site origin(s), comma-separated, e.g. `https://your-client.onrender.com`. Overrides `Cors:Origins` in appsettings when set. |
-| **Client → API URL** | Set `ApiBaseUrl` in `wwwroot/appsettings.Production.json` to your API public HTTPS URL before/during static site build. |
+| **CORS** | Set **`CORS_ORIGINS`** on the API to include your frontend origin(s), comma-separated. For this repo include `https://deeptux.github.io` (origin only, no path). |
+| **Client → API URL** | Production uses `wwwroot/appsettings.Production.json` with `ApiBaseUrl: https://apptest-hris.onrender.com` (also enforced in the Pages workflow publish output). |
 
-**Deployed URLs (fill in after first deploy; replace placeholders in this table):**
+**Deployed URLs:**
 
-| Service | URL (placeholder) |
+| Service | URL |
 |---------|---------------------|
-| Blazor static site | `https://YOUR-CLIENT.onrender.com` |
-| ASP.NET Core API | `https://YOUR-API.onrender.com` |
+| Blazor static site (GitHub Pages) | `https://deeptux.github.io/apptest-hris/` |
+| ASP.NET Core API (Render) | `https://apptest-hris.onrender.com` |
 
 **Smoke test:** Open the static site over HTTPS; in browser DevTools → Network, confirm API calls succeed with no CORS errors.
 
