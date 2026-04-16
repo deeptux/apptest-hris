@@ -1,0 +1,51 @@
+@page "/audit"
+@inject RspDemoApiService Api
+
+<PageTitle>Audit log</PageTitle>
+
+<h1 class="mb-3">Audit log</h1>
+<p class="text-muted small">Minimal activity list (mock).</p>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+else if (_items is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <ul class="list-group rsp-card p-0 overflow-hidden">
+        @foreach (var e in _items.OrderByDescending(x => x.OccurredAt))
+        {
+            <li class="list-group-item d-flex flex-column flex-md-row gap-2 justify-content-between align-items-md-center">
+                <div>
+                    <span class="badge text-bg-light border me-2">@e.ActorRole</span>
+                    <strong>@e.Action</strong>
+                    <div class="small text-muted">@e.EntitySummary</div>
+                    <div class="small text-muted"><code>@e.EntityType</code> · <code>@e.EntityId.ToString()[..8]</code></div>
+                </div>
+                <div class="small text-muted text-md-end">@e.OccurredAt.ToLocalTime().ToString("g")</div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<AuditEventDto>? _items;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await Api.GetAuditEventsAsync();
+            _error = _items is null ? "Could not load data. Start the API project." : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

@@ -1,0 +1,48 @@
+/* Design tokens: baby powder blue, teal, green — tune hex when slide PNGs are available (see docs/canonical-proposal-deck.md). */
+:root {
+    --color-bg-powder: #f0f7f9;
+    --color-surface: #ffffff;
+    --color-primary-teal: #0f766e;
+    --color-primary-teal-dark: #0d5c56;
+    --color-accent-green: #16a34a;
+    --color-accent-green-muted: #dcfce7;
+    --color-text: #0f172a;
+    --color-text-muted: #475569;
+    --color-border: #cbd5e1;
+
+    /* Bootstrap 5 variable bridge */
+    --bs-body-bg: var(--color-bg-powder);
+    --bs-body-color: var(--color-text);
+    --bs-primary: var(--color-primary-teal);
+    --bs-primary-rgb: 15, 118, 110;
+    --bs-success: var(--color-accent-green);
+    --bs-link-color: var(--color-primary-teal);
+    --bs-link-hover-color: var(--color-primary-teal-dark);
+}
+
+.rsp-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.rsp-card-header {
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--color-primary-teal-dark);
+}
+
+.journey-step-index {
+    background: var(--color-accent-green-muted);
+    color: var(--color-accent-green);
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}

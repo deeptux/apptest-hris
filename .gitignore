@@ -1,0 +1,67 @@
+## Local-only materials (meetings, slide exports, client data) — not published
+/references/
+
+## Internal documentation (local only — not on GitHub)
+/docs/
+
+## Editor / agent rules (local only — not on GitHub)
+/.cursor/
+
+## Build outputs — .NET
+**/bin/
+**/obj/
+**/out/
+**/publish/
+*.dll
+*.exe
+*.pdb
+*.cache
+project.lock.json
+artifacts/
+
+## User-specific / IDE
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+*.rsuser
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## Secrets & local overrides (never commit real keys)
+**/appsettings.*.local.json
+**/secrets.json
+*.pfx
+.env
+.env.*
+!.env.example
+
+## Test / coverage
+TestResults/
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+
+## NuGet
+*.nupkg
+*.snupkg
+
+## Logs & temp
+*.log
+*.tmp
+*.temp
+~$*
+
+## Blazor / WASM / tooling
+**/wwwroot/lib/**/node_modules/
+node_modules/
+

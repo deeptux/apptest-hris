@@ -1,0 +1,302 @@
+﻿@page "/"
+@using System.Globalization
+@inject BrandingOptions Branding
+@inject RspDemoApiService Api
+
+<PageTitle>@Branding.ProductName — Dashboard</PageTitle>
+
+<div class="dashboard-shell">
+    <header class="dash-app-header">
+        <div class="dash-app-header__top">
+            <div class="dash-app-header__brand">
+                <div class="dash-app-header__logo" aria-hidden="true">HR</div>
+                <div>
+                    <h1 class="dash-app-header__title">Dashboard</h1>
+                    <p class="dash-app-header__subtitle">@Branding.ProductName · @Branding.Tagline</p>
+                </div>
+            </div>
+            <div class="dash-app-header__actions">
+                <div class="dash-pill-group" role="tablist">
+                    <NavLink class="dash-pill" href="" Match="NavLinkMatch.All" ActiveClass="dash-pill--active">Overview</NavLink>
+                    <NavLink class="dash-pill" href="journey" ActiveClass="dash-pill--active">RSP journey</NavLink>
+                    <NavLink class="dash-pill" href="audit" ActiveClass="dash-pill--active">Activity</NavLink>
+                </div>
+                <button class="btn-dash-outline" @onclick="RefreshStatsAsync">Refresh</button>
+                <a class="btn-dash-outline" href="manpower">Open work queues</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-body">
+        <div class="small text-muted mb-2">Last updated: @(_lastUpdated?.ToLocalTime().ToString("g") ?? "Not yet loaded")</div>
+        @if (_statsNote is not null)
+        {
+            <div class="alert alert-warning py-2 small mb-3" role="status">@_statsNote</div>
+        }
+
+        <div class="kpi-grid">
+            <a class="kpi-tile kpi-tile--violet kpi-tile--link" href="manpower">
+                <span class="kpi-tile__label">Manpower requests</span>
+                <span class="kpi-tile__value">@_kpiManpower</span>
+                <span class="kpi-tile__hint">Staffing needs in the RSP pipeline</span>
+            </a>
+            <a class="kpi-tile kpi-tile--ocean kpi-tile--link" href="vacancies">
+                <span class="kpi-tile__label">Vacancies</span>
+                <span class="kpi-tile__value">@_kpiVacancies</span>
+                <span class="kpi-tile__hint">Postings &amp; publication lifecycle</span>
+            </a>
+            <a class="kpi-tile kpi-tile--teal kpi-tile--link" href="applicants">
+                <span class="kpi-tile__label">Applicants</span>
+                <span class="kpi-tile__value">@_kpiApplicants</span>
+                <span class="kpi-tile__hint">Profiles &amp; eligibility (demo)</span>
+            </a>
+            <a class="kpi-tile kpi-tile--green kpi-tile--link" href="appointments">
+                <span class="kpi-tile__label">Appointment packages</span>
+                <span class="kpi-tile__value">@_kpiAppointments</span>
+                <span class="kpi-tile__hint">Packages in assembly / approval</span>
+            </a>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-xl-8">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="dash-card">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">Pipeline touchpoints</h2>
+                                <span class="dash-card__legend">12-mo illustrative trend</span>
+                            </div>
+                            <div class="dash-card__body dash-chart-h">
+                                <svg class="dash-chart-svg" viewBox="0 0 320 140" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                                    <defs>
+                                        <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="rgba(15,118,110,0.25)" />
+                                            <stop offset="100%" stop-color="rgba(15,118,110,0)" />
+                                        </linearGradient>
+                                    </defs>
+                                    <line x1="32" y1="8" x2="32" y2="112" stroke="#e2e8f0" stroke-width="1" />
+                                    <line x1="32" y1="112" x2="300" y2="112" stroke="#e2e8f0" stroke-width="1" />
+                                    <polyline fill="url(#g1)" stroke="none"
+                                              points="32,88 56,72 80,80 104,58 128,64 152,48 176,52 200,38 224,44 248,32 272,28 296,22 296,112 32,112" />
+                                    <polyline fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linejoin="round"
+                                              points="32,88 56,72 80,80 104,58 128,64 152,48 176,52 200,38 224,44 248,32 272,28 296,22" />
+                                    <polyline fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"
+                                              points="32,98 56,92 80,96 104,88 128,90 152,82 176,86 200,78 224,80 248,74 272,70 296,66" />
+                                </svg>
+                                <div class="d-flex justify-content-end gap-3 small text-muted mt-1">
+                                    <span><span class="dash-dot d-inline-block" style="background:#0f766e"></span> Intake &amp; screening</span>
+                                    <span><span class="dash-dot d-inline-block" style="background:#2563eb"></span> Selection board</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="dash-card">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">Posting cadence</h2>
+                                <span class="dash-card__legend">Mock monthly volume</span>
+                            </div>
+                            <div class="dash-card__body dash-chart-h">
+                                <svg class="dash-chart-svg" viewBox="0 0 320 140" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                                    <line x1="32" y1="8" x2="32" y2="112" stroke="#e2e8f0" stroke-width="1" />
+                                    <line x1="32" y1="112" x2="300" y2="112" stroke="#e2e8f0" stroke-width="1" />
+                                    <polyline fill="none" stroke="#0d9488" stroke-width="2.5"
+                                              points="32,96 56,100 80,88 104,92 128,78 152,82 176,70 200,74 224,60 248,64 272,52 296,48" />
+                                    <polyline fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="5 4"
+                                              points="32,104 56,102 80,98 104,100 128,94 152,96 176,90 200,92 224,86 248,88 272,82 296,80" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="dash-card">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">Applicants by status</h2>
+                                <span class="dash-card__legend">Demo mix</span>
+                            </div>
+                            <div class="dash-card__body">
+                                <div class="dash-donut-wrap">
+                                    <svg width="120" height="120" viewBox="0 0 36 36" aria-hidden="true">
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" stroke-width="3" />
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#0f766e" stroke-width="3"
+                                                stroke-dasharray="@_donutEligibleStr" stroke-dashoffset="25" transform="rotate(-90 18 18)" />
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f97316" stroke-width="3"
+                                                stroke-dasharray="@_donutPendingStr" stroke-dashoffset="@_donutPendingOffsetStr" transform="rotate(-90 18 18)" />
+                                    </svg>
+                                    <ul class="dash-donut-legend">
+                                        <li><span class="dash-dot" style="background:#0f766e"></span> Qualified</li>
+                                        <li><span class="dash-dot" style="background:#f97316"></span> Pending/Rejected</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="dash-card">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">Vacancy lifecycle</h2>
+                                <span class="dash-card__legend">By stage</span>
+                            </div>
+                            <div class="dash-card__body">
+                                <div class="dash-donut-wrap">
+                                    <svg width="120" height="120" viewBox="0 0 36 36" aria-hidden="true">
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" stroke-width="3" />
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#1d4ed8" stroke-width="3"
+                                                stroke-dasharray="33.34 100" stroke-dashoffset="25" transform="rotate(-90 18 18)" />
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#0d9488" stroke-width="3"
+                                                stroke-dasharray="33.34 100" stroke-dashoffset="8.33" transform="rotate(-90 18 18)" />
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#16a34a" stroke-width="3"
+                                                stroke-dasharray="33.34 100" stroke-dashoffset="-8.33" transform="rotate(-90 18 18)" />
+                                    </svg>
+                                    <ul class="dash-donut-legend">
+                                        <li><span class="dash-dot" style="background:#1d4ed8"></span> Published</li>
+                                        <li><span class="dash-dot" style="background:#0d9488"></span> Scheduled</li>
+                                        <li><span class="dash-dot" style="background:#16a34a"></span> Draft</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mt-1 dash-action-grid">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="dash-card h-100">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">RSP journey</h2>
+                            </div>
+                            <div class="dash-card__body">
+                                <p class="small text-muted mb-3">Seven-step flow from staffing need through onboarding (read-only demo).</p>
+                                <a class="btn btn-primary w-100" href="journey">Open journey</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="dash-card h-100">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">Work queues</h2>
+                            </div>
+                            <div class="dash-card__body d-grid gap-2">
+                                <a class="btn btn-outline-primary btn-sm" href="manpower">Manpower requests</a>
+                                <a class="btn btn-outline-primary btn-sm" href="vacancies">Vacancies</a>
+                                <a class="btn btn-outline-primary btn-sm" href="applicants">Applicants</a>
+                                <a class="btn btn-outline-primary btn-sm" href="appointments">Appointment packages</a>
+                                <a class="btn btn-outline-secondary btn-sm" href="audit">Audit log</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="dash-card h-100 dash-disclaimer">
+                            <div class="dash-card__head">
+                                <h2 class="dash-card__title">Disclaimer</h2>
+                            </div>
+                            <div class="dash-card__body small text-muted">
+                                This demo is not legal advice or a claim of full CSC compliance. Data is mock and for narrative illustration only.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 dash-sidebar">
+                <div class="dash-card mb-4">
+                    <div class="dash-card__head">
+                        <h2 class="dash-card__title">Quick view</h2>
+                    </div>
+                    <div class="dash-card__body">
+                        <div class="mb-3">
+                            <div class="dash-form-label">Report period</div>
+                            <div class="small text-muted">Last 30 days (illustrative)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="dash-form-label" for="dashUnit">Organizational unit</label>
+                            <select id="dashUnit" class="form-select form-select-sm" disabled>
+                                <option>All units (demo)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="dash-form-label" for="dashStage">RSP stage focus</label>
+                            <select id="dashStage" class="form-select form-select-sm" disabled>
+                                <option>End-to-end pipeline</option>
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label class="dash-form-label" for="dashOwner">Process owner</label>
+                            <select id="dashOwner" class="form-select form-select-sm" disabled>
+                                <option>@Branding.OrganizationName — HR</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-help-card">
+                    <strong>Have questions?</strong>
+                    Use the sidebar menu for full modules. Charts and KPIs use <strong>mock or API-driven counts</strong> for demo storytelling only.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="dash-footer-banner">
+        @Branding.OrganizationName · Phase 1 RSP demo · single source of truth narrative (illustrative metrics)
+    </footer>
+</div>
+
+@code {
+    private int _kpiManpower = 3;
+    private int _kpiVacancies = 3;
+    private int _kpiApplicants = 3;
+    private int _kpiAppointments = 2;
+    private string? _statsNote;
+    private DateTimeOffset? _lastUpdated;
+    private string _donutEligibleStr = "66.67 33.33";
+    private string _donutPendingStr = "33.33 66.67";
+    private string _donutPendingOffsetStr = "-41.67";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStatsAsync();
+    }
+
+    private async Task RefreshStatsAsync()
+    {
+        try
+        {
+            _statsNote = null;
+            var mpTask = Api.GetManpowerRequestsAsync();
+            var vacTask = Api.GetVacanciesAsync();
+            var appTask = Api.GetApplicantsAsync();
+            var apptTask = Api.GetAppointmentsAsync();
+            await Task.WhenAll(mpTask, vacTask, appTask, apptTask).ConfigureAwait(false);
+
+            var mp = await mpTask.ConfigureAwait(false);
+            var vac = await vacTask.ConfigureAwait(false);
+            var app = await appTask.ConfigureAwait(false);
+            var appt = await apptTask.ConfigureAwait(false);
+
+            if (mp is not null) _kpiManpower = mp.Count;
+            if (vac is not null) _kpiVacancies = vac.Count;
+            if (app is not null)
+            {
+                _kpiApplicants = app.Count;
+                var eligible = app.Count(a => string.Equals(a.EligibilityFlag, "Qualified", StringComparison.OrdinalIgnoreCase));
+                var pending = app.Count - eligible;
+                if (app.Count > 0)
+                {
+                    var el = Math.Round(100.0 * eligible / app.Count, 2);
+                    var pe = Math.Round(100.0 * pending / app.Count, 2);
+                    var inv = CultureInfo.InvariantCulture;
+                    _donutEligibleStr = $"{el.ToString("F2", inv)} {(100 - el).ToString("F2", inv)}";
+                    _donutPendingStr = $"{pe.ToString("F2", inv)} {(100 - pe).ToString("F2", inv)}";
+                    _donutPendingOffsetStr = (25 - el).ToString("F2", inv);
+                }
+            }
+            if (appt is not null) _kpiAppointments = appt.Count;
+            _lastUpdated = DateTimeOffset.Now;
+        }
+        catch
+        {
+            _statsNote = "API unavailable — showing default demo figures. Start Hris.Demo.Api for live KPI counts.";
+        }
+    }
+}

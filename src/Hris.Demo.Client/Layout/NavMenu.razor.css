@@ -1,0 +1,175 @@
+.navbar-toggler {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.top-row {
+    min-height: 3.5rem;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.navbar-brand {
+    font-size: 1.1rem;
+}
+
+.brand-toggle {
+    border: 0;
+    background: transparent;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0;
+}
+
+.brand-chevron {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.brand-label {
+    white-space: nowrap;
+}
+
+.brand-toggle:hover {
+    color: #fff;
+    opacity: 0.9;
+}
+
+.nav-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    margin-right: 0.65rem;
+    border-radius: 0.4rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.nav-glyph ::deep .nav-glyph-svg {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: block;
+    flex-shrink: 0;
+}
+
+.nav-glyph-home {
+    background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
+}
+
+.nav-glyph-journey {
+    background: linear-gradient(145deg, #a78bfa 0%, #7c3aed 50%, #5b21b6 100%);
+}
+
+.nav-glyph-manpower {
+    background: linear-gradient(145deg, #2dd4bf 0%, #0d9488 55%, #0f766e 100%);
+}
+
+.nav-glyph-vacancies {
+    background: linear-gradient(145deg, #14b8a6 0%, #0f766e 50%, #115e59 100%);
+}
+
+.nav-glyph-applicants {
+    background: linear-gradient(145deg, #4ade80 0%, #16a34a 50%, #15803d 100%);
+}
+
+.nav-glyph-appointments {
+    background: linear-gradient(145deg, #fbbf24 0%, #d97706 50%, #b45309 100%);
+}
+
+.nav-glyph-audit {
+    background: linear-gradient(145deg, #64748b 0%, #334155 55%, #1e293b 100%);
+}
+
+.nav-glyph-org {
+    background: linear-gradient(145deg, #94a3b8 0%, #475569 50%, #334155 100%);
+}
+
+.nav-glyph-position {
+    background: linear-gradient(145deg, #60a5fa 0%, #2563eb 50%, #1e40af 100%);
+}
+
+.nav-glyph-person {
+    background: linear-gradient(145deg, #c084fc 0%, #9333ea 55%, #6b21a8 100%);
+}
+
+.nav-glyph-qs {
+    background: linear-gradient(145deg, #34d399 0%, #059669 50%, #047857 100%);
+}
+
+.nav-item {
+    font-size: 0.9rem;
+    padding-bottom: 0.5rem;
+}
+
+    .nav-item:first-of-type {
+        padding-top: 1rem;
+    }
+
+    .nav-item:last-of-type {
+        padding-bottom: 1rem;
+    }
+
+    .nav-item ::deep a {
+        color: #d7d7d7;
+        border-radius: 4px;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.15rem;
+        line-height: 3rem;
+        text-decoration: none;
+    }
+
+.nav-item ::deep a.active {
+    background-color: rgba(255,255,255,0.37);
+    color: white;
+}
+
+.nav-item ::deep a:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+}
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .collapse {
+        /* Never collapse the sidebar for wide screens */
+        display: block;
+    }
+
+    .nav-scrollable {
+        /* Allow sidebar to scroll for tall menus */
+        height: calc(100vh - 3.5rem);
+        overflow-y: auto;
+    }
+
+    .is-collapsed .nav-item {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .is-collapsed .nav-item ::deep a {
+        justify-content: center;
+        margin: 0.2rem 0.5rem;
+    }
+
+    .is-collapsed .nav-label {
+        display: none;
+    }
+
+    .is-collapsed .nav-glyph {
+        margin-right: 0;
+    }
+
+    .is-collapsed .brand-label {
+        min-width: 0.7rem;
+        text-align: center;
+    }
+}

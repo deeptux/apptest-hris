@@ -1,0 +1,92 @@
+@page "/manpower"
+@inject RspDemoApiService Api
+
+<PageTitle>Manpower requests</PageTitle>
+
+<h1 class="mb-3">Manpower requests</h1>
+<p class="text-muted small">Action: submit/approve toggle (demo-safe progression).</p>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Refresh</button>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+else if (_items is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <div class="table-responsive rsp-card">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Reference</th>
+                    <th>Department</th>
+                    <th>Position</th>
+                    <th>Organization unit</th>
+                    <th>Status</th>
+                    <th>Requested</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _items)
+                {
+                    <tr>
+                        <td><code>@r.ReferenceCode</code></td>
+                        <td>@r.Department</td>
+                        <td>@r.PositionTitle</td>
+                        <td>@ResolveOrganizationUnit(r.OrganizationUnitId)</td>
+                        <td><span class="badge text-bg-light border">@r.Status</span></td>
+                        <td>@r.RequestedOn.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleAsync(r.Id)">Toggle</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [CascadingParameter(Name = "SimulatedRole")]
+    public string SimulatedRole { get; set; } = "HR";
+
+    private IReadOnlyList<ManpowerRequestDto>? _items;
+    private Dictionary<Guid, string> _organizationUnits = [];
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var itemsTask = Api.GetManpowerRequestsAsync();
+            var unitsTask = Api.GetOrganizationUnitsAsync();
+            await Task.WhenAll(itemsTask, unitsTask);
+            _items = await itemsTask;
+            var units = await unitsTask;
+            _organizationUnits = (units ?? []).ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
+            _error = _items is null ? "Could not load data. Start the API project." : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task ToggleAsync(Guid id)
+    {
+        await Api.ToggleManpowerSubmitApproveAsync(id, SimulatedRole);
+        await LoadAsync();
+    }
+
+    private string ResolveOrganizationUnit(Guid id) =>
+        _organizationUnits.TryGetValue(id, out var value) ? value : "Unknown";
+}

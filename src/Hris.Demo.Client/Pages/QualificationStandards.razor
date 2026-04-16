@@ -1,0 +1,465 @@
+@page "/foundation/qualification-standards"
+@using Hris.Demo.Shared.Ai
+@inject RspDemoApiService Api
+@inject AiAssistantApiService AiAssistant
+@inject IConfiguration Configuration
+
+<PageTitle>Qualification standards records</PageTitle>
+
+<h1 class="mb-3">Qualification standards records</h1>
+<p class="text-muted small">Demo records for position qualification requirements.</p>
+
+<div class="d-flex align-items-center gap-3 mb-3">
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="qsIncludeInactive" @bind="_includeInactive" @bind:after="LoadAsync" />
+        <label class="form-check-label" for="qsIncludeInactive">Include inactive</label>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Refresh</button>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="table-responsive rsp-card">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Position</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_items is not null)
+                    {
+                        @foreach (var item in _items)
+                        {
+                            <tr>
+                                <td><code>@item.Code</code></td>
+                                <td>@item.PositionTitle</td>
+                                <td>@(item.IsActive ? "Active" : "Inactive")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => BeginEdit(item)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateAsync(item.Id)" disabled="@(!item.IsActive)">Deactivate</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="rsp-card p-3">
+            <h2 class="h5 mb-3">@(_editingId is null ? "Create record" : "Edit record")</h2>
+            <div class="mb-2">
+                <label class="form-label">Code</label>
+                <input class="form-control" value="@_form.Code" @oninput="OnCodeInput" />
+                <div class="form-text">Default format is <code>QS-</code> + initials from Position title (editable/overridable).</div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Position title</label>
+                <input class="form-control" value="@_form.PositionTitle" @oninput="OnPositionTitleInput" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Job Description</label>
+                <textarea class="form-control" rows="@_descriptionRows" @bind="_form.Description"></textarea>
+            </div>
+            @if (_aiUiEnabled)
+            {
+                @if (_quota is not null && _quota.SoftWarning && !_quota.DailyLimitReached)
+                {
+                    <div class="alert alert-warning py-2 small mb-2" role="status">You're close to today's limit for AI help; use it for drafts you still need to review.</div>
+                }
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            disabled="@GenerateAiDisabled"
+                            title="@GenerateAiTitle"
+                            @onclick="GenerateAiAsync">
+                        @if (_genBusy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Generating…</span>
+                        }
+                        else
+                        {
+                            <span>Generate AI</span>
+                        }
+                    </button>
+                </div>
+                @if (_genMessage is not null)
+                {
+                    <div class="alert alert-secondary py-2 small mb-3">@_genMessage</div>
+                }
+            }
+            <div class="mb-3">
+                <label class="form-label">Education</label>
+                <div class="input-group input-group-sm mb-2">
+                    <input class="form-control" placeholder="Add education entry..." @bind="_educationInput" />
+                    <button class="btn btn-outline-primary" type="button" @onclick="AddEducation">Add</button>
+                </div>
+                <ul class="list-group list-group-flush border rounded">
+                    @if (_educationItems.Count == 0)
+                    {
+                        <li class="list-group-item small text-muted">No items yet.</li>
+                    }
+                    @for (var i = 0; i < _educationItems.Count; i++)
+                    {
+                        <li class="list-group-item d-flex align-items-start gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => RemoveEducation(i)">×</button>
+                            <span>• @_educationItems[i]</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Training</label>
+                <div class="input-group input-group-sm mb-2">
+                    <input class="form-control" placeholder="Add training entry..." @bind="_trainingInput" />
+                    <button class="btn btn-outline-primary" type="button" @onclick="AddTraining">Add</button>
+                </div>
+                <ul class="list-group list-group-flush border rounded">
+                    @if (_trainingItems.Count == 0)
+                    {
+                        <li class="list-group-item small text-muted">No items yet.</li>
+                    }
+                    @for (var i = 0; i < _trainingItems.Count; i++)
+                    {
+                        <li class="list-group-item d-flex align-items-start gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => RemoveTraining(i)">×</button>
+                            <span>• @_trainingItems[i]</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Experience</label>
+                <div class="input-group input-group-sm mb-2">
+                    <input class="form-control" placeholder="Add experience entry..." @bind="_experienceInput" />
+                    <button class="btn btn-outline-primary" type="button" @onclick="AddExperience">Add</button>
+                </div>
+                <ul class="list-group list-group-flush border rounded">
+                    @if (_experienceItems.Count == 0)
+                    {
+                        <li class="list-group-item small text-muted">No items yet.</li>
+                    }
+                    @for (var i = 0; i < _experienceItems.Count; i++)
+                    {
+                        <li class="list-group-item d-flex align-items-start gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => RemoveExperience(i)">×</button>
+                            <span>• @_experienceItems[i]</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Eligibility</label>
+                <div class="input-group input-group-sm mb-2">
+                    <input class="form-control" placeholder="Add eligibility entry..." @bind="_eligibilityInput" />
+                    <button class="btn btn-outline-primary" type="button" @onclick="AddEligibility">Add</button>
+                </div>
+                <ul class="list-group list-group-flush border rounded">
+                    @if (_eligibilityItems.Count == 0)
+                    {
+                        <li class="list-group-item small text-muted">No items yet.</li>
+                    }
+                    @for (var i = 0; i < _eligibilityItems.Count; i++)
+                    {
+                        <li class="list-group-item d-flex align-items-start gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => RemoveEligibility(i)">×</button>
+                            <span>• @_eligibilityItems[i]</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm" @onclick="SaveAsync">Save</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ResetForm">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string DailyLimitTooltip = "Today's limit for AI-assisted text has been reached so the service stays fair for everyone. You can type the description yourself or try again tomorrow.";
+
+    private IReadOnlyList<QualificationStandardRefDto>? _items;
+    private string? _error;
+    private bool _includeInactive;
+    private Guid? _editingId;
+    private int _descriptionRows = 3;
+    private QualificationStandardRefUpsertDto _form = new("QS-", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+    private readonly List<string> _educationItems = [];
+    private readonly List<string> _trainingItems = [];
+    private readonly List<string> _experienceItems = [];
+    private readonly List<string> _eligibilityItems = [];
+    private string _educationInput = string.Empty;
+    private string _trainingInput = string.Empty;
+    private string _experienceInput = string.Empty;
+    private string _eligibilityInput = string.Empty;
+
+    private AiQuotaStatusDto? _quota;
+    private bool _genBusy;
+    private string? _genMessage;
+    private DateTimeOffset _lastGenerateClickUtc = DateTimeOffset.MinValue;
+
+    private bool _aiUiEnabled => Configuration.GetValue("Ai:Enabled", true);
+
+    private bool GenerateAiDisabled =>
+        _genBusy
+        || _quota is null
+        || !_quota.CanGenerate
+        || string.IsNullOrWhiteSpace(_form.PositionTitle);
+
+    private string? GenerateAiTitle =>
+        _quota?.DailyLimitReached == true ? DailyLimitTooltip : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshQuotaAsync();
+        await LoadAsync();
+    }
+
+    private async Task RefreshQuotaAsync()
+    {
+        if (!_aiUiEnabled)
+        {
+            return;
+        }
+
+        try
+        {
+            _quota = await AiAssistant.GetQuotaStatusAsync();
+        }
+        catch
+        {
+            _quota = null;
+        }
+    }
+
+    private async Task GenerateAiAsync()
+    {
+        if (!_aiUiEnabled || GenerateAiDisabled)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if ((now - _lastGenerateClickUtc).TotalMilliseconds < 1000)
+        {
+            return;
+        }
+
+        _lastGenerateClickUtc = now;
+        _genBusy = true;
+        _genMessage = null;
+        _error = null;
+        StateHasChanged();
+
+        var request = new JobDescriptionGenerateRequest(_form.PositionTitle.Trim(), null, null, "en");
+        var (data, status, _) = await AiAssistant.GenerateJobDescriptionAsync(request);
+        _genBusy = false;
+
+        if (data is not null)
+        {
+            _form.Description = data.GeneratedDescription;
+            _descriptionRows = Math.Min(_descriptionRows * 3, 50);
+            await RefreshQuotaAsync();
+            StateHasChanged();
+            return;
+        }
+
+        if (status == 429 || status == 503)
+        {
+            await RefreshQuotaAsync();
+        }
+
+        _genMessage = status switch
+        {
+            429 => "The service is busy or today's limit was reached. Please try again later.",
+            503 => "The writing service is temporarily unavailable.",
+            _ => "Could not generate text. Please try again or type the description yourself.",
+        };
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _items = await Api.GetQualificationStandardsAsync(_includeInactive);
+            _error = _items is null ? "Could not load qualification standards records." : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("Failed to fetch", StringComparison.OrdinalIgnoreCase)
+                ? "TypeError: Failed to fetch means the browser could not reach the API. Ensure API is running and ApiBaseUrl matches its URL/port."
+                : ex.Message;
+        }
+
+        await RefreshQuotaAsync();
+    }
+
+    private void BeginEdit(QualificationStandardRefDto item)
+    {
+        _editingId = item.Id;
+        _descriptionRows = 3;
+        _form = new QualificationStandardRefUpsertDto(item.Code, item.PositionTitle, item.Description, item.Education, item.Training, item.Experience, item.Eligibility);
+        LoadBulletFieldsFromForm();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_form.PositionTitle))
+        {
+            _error = "Position title is required.";
+            return;
+        }
+
+        if (_editingId is null)
+        {
+            if (string.IsNullOrWhiteSpace(_form.Code) || string.Equals(_form.Code.Trim(), "QS-", StringComparison.OrdinalIgnoreCase))
+            {
+                _form.Code = GenerateCodeFromPositionTitle(_form.PositionTitle);
+            }
+            SyncFormFromBulletFields();
+            await Api.CreateQualificationStandardAsync(_form);
+        }
+        else
+        {
+            SyncFormFromBulletFields();
+            await Api.UpdateQualificationStandardAsync(_editingId.Value, _form);
+        }
+
+        ResetForm();
+        await LoadAsync();
+    }
+
+    private async Task DeactivateAsync(Guid id)
+    {
+        await Api.DeactivateQualificationStandardAsync(id);
+        await LoadAsync();
+    }
+
+    private void ResetForm()
+    {
+        _editingId = null;
+        _descriptionRows = 3;
+        _form = new QualificationStandardRefUpsertDto("QS-", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        _educationItems.Clear();
+        _trainingItems.Clear();
+        _experienceItems.Clear();
+        _eligibilityItems.Clear();
+        _educationInput = string.Empty;
+        _trainingInput = string.Empty;
+        _experienceInput = string.Empty;
+        _eligibilityInput = string.Empty;
+    }
+
+    private void OnPositionTitleInput(ChangeEventArgs e)
+    {
+        _form.PositionTitle = e.Value?.ToString() ?? string.Empty;
+        _form.Code = GenerateCodeFromPositionTitle(_form.PositionTitle);
+    }
+
+    private void OnCodeInput(ChangeEventArgs e)
+    {
+        _form.Code = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private void AddEducation()
+    {
+        AddBulletItem(_educationItems, ref _educationInput);
+    }
+
+    private void AddTraining()
+    {
+        AddBulletItem(_trainingItems, ref _trainingInput);
+    }
+
+    private void AddExperience()
+    {
+        AddBulletItem(_experienceItems, ref _experienceInput);
+    }
+
+    private void AddEligibility()
+    {
+        AddBulletItem(_eligibilityItems, ref _eligibilityInput);
+    }
+
+    private void RemoveEducation(int index) => RemoveBulletItem(_educationItems, index);
+    private void RemoveTraining(int index) => RemoveBulletItem(_trainingItems, index);
+    private void RemoveExperience(int index) => RemoveBulletItem(_experienceItems, index);
+    private void RemoveEligibility(int index) => RemoveBulletItem(_eligibilityItems, index);
+
+    private static void AddBulletItem(List<string> target, ref string source)
+    {
+        var value = source.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        target.Add(value);
+        source = string.Empty;
+    }
+
+    private static void RemoveBulletItem(List<string> target, int index)
+    {
+        if (index < 0 || index >= target.Count)
+        {
+            return;
+        }
+
+        target.RemoveAt(index);
+    }
+
+    private void LoadBulletFieldsFromForm()
+    {
+        _educationItems.Clear();
+        _educationItems.AddRange(ParseBullets(_form.Education));
+        _trainingItems.Clear();
+        _trainingItems.AddRange(ParseBullets(_form.Training));
+        _experienceItems.Clear();
+        _experienceItems.AddRange(ParseBullets(_form.Experience));
+        _eligibilityItems.Clear();
+        _eligibilityItems.AddRange(ParseBullets(_form.Eligibility));
+        _educationInput = string.Empty;
+        _trainingInput = string.Empty;
+        _experienceInput = string.Empty;
+        _eligibilityInput = string.Empty;
+    }
+
+    private void SyncFormFromBulletFields()
+    {
+        _form.Education = SerializeBullets(_educationItems);
+        _form.Training = SerializeBullets(_trainingItems);
+        _form.Experience = SerializeBullets(_experienceItems);
+        _form.Eligibility = SerializeBullets(_eligibilityItems);
+    }
+
+    private static IEnumerable<string> ParseBullets(string? value) =>
+        (value ?? string.Empty)
+            .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+    private static string SerializeBullets(IEnumerable<string> values) =>
+        string.Join('\n', values.Select(static x => x.Trim()).Where(static x => !string.IsNullOrWhiteSpace(x)));
+
+    private static string GenerateCodeFromPositionTitle(string? positionTitle)
+    {
+        var parts = (positionTitle ?? string.Empty)
+            .Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+        var initials = string.Concat(parts
+            .Where(static p => p.Length > 0 && char.IsLetter(p[0]))
+            .Select(static p => char.ToUpperInvariant(p[0])));
+
+        return $"QS-{initials}";
+    }
+}

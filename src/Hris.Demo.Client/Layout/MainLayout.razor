@@ -1,0 +1,41 @@
+﻿@inherits LayoutComponentBase
+@inject BrandingOptions Branding
+
+<div class="page">
+    <div class="sidebar @(_isSidebarCollapsed ? "sidebar-collapsed" : string.Empty)">
+        <NavMenu IsCollapsed="_isSidebarCollapsed" OnToggleSidebar="ToggleSidebar" />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex align-items-center gap-3 flex-wrap">
+            <div class="me-auto text-start">
+                <div class="fw-semibold text-body">@Branding.OrganizationName</div>
+                <div class="small text-muted">@Branding.Tagline</div>
+            </div>
+            <label class="small text-muted mb-0 d-flex align-items-center gap-2">
+                <span>Simulated role</span>
+                <select class="form-select form-select-sm" style="width: auto; min-width: 9rem;" @bind="_simulatedRole" @bind:after="StateHasChanged">
+                    <option value="HR">HR</option>
+                    <option value="Approver">Approver</option>
+                    <option value="HiringManager">Hiring manager</option>
+                </select>
+            </label>
+        </div>
+
+        <article class="content px-4">
+            <CascadingValue Value="_simulatedRole" Name="SimulatedRole">
+                @Body
+            </CascadingValue>
+        </article>
+    </main>
+</div>
+
+@code {
+    private string _simulatedRole = "HR";
+    private bool _isSidebarCollapsed;
+
+    private void ToggleSidebar()
+    {
+        _isSidebarCollapsed = !_isSidebarCollapsed;
+    }
+}

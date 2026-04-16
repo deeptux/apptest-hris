@@ -1,0 +1,180 @@
+@page "/foundation/position-items"
+@inject RspDemoApiService Api
+
+<PageTitle>Position items</PageTitle>
+
+<h1 class="mb-3">Position items</h1>
+<p class="text-muted small">Demo plantilla/item references linked to organization units and qualification standards.</p>
+
+<div class="d-flex align-items-center gap-3 mb-3">
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="piIncludeInactive" @bind="_includeInactive" @bind:after="LoadAsync" />
+        <label class="form-check-label" for="piIncludeInactive">Include inactive</label>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Refresh</button>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+
+<div class="row g-3">
+    <div class="col-xl-7">
+        <div class="table-responsive rsp-card">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Item</th>
+                        <th>Plantilla</th>
+                        <th>Title</th>
+                        <th>SG</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_items is not null)
+                    {
+                        @foreach (var item in _items)
+                        {
+                            <tr>
+                                <td><code>@item.ItemNumber</code></td>
+                                <td>@item.PlantillaNumber</td>
+                                <td>@item.Title</td>
+                                <td>@item.SalaryGrade</td>
+                                <td>@(item.IsActive ? "Active" : "Inactive")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => BeginEdit(item)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateAsync(item.Id)" disabled="@(!item.IsActive)">Deactivate</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="rsp-card p-3">
+            <h2 class="h5 mb-3">@(_editingId is null ? "Create item" : "Edit item")</h2>
+            <div class="mb-2"><label class="form-label">Item number</label><input class="form-control" @bind="_form.ItemNumber" /></div>
+            <div class="mb-2"><label class="form-label">Plantilla number</label><input class="form-control" @bind="_form.PlantillaNumber" /></div>
+            <div class="mb-2"><label class="form-label">Title</label><input class="form-control" @bind="_form.Title" /></div>
+            <div class="mb-2"><label class="form-label">Salary grade</label><input class="form-control" @bind="_form.SalaryGrade" /></div>
+            <div class="mb-2">
+                <label class="form-label">Organization unit</label>
+                <select class="form-select" @bind="_form.OrganizationUnitId">
+                    @foreach (var unit in _units)
+                    {
+                        <option value="@unit.Id">@unit.Code - @unit.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Qualification standard</label>
+                <select class="form-select" @bind="_form.QualificationStandardRefId">
+                    @foreach (var q in _qsRefs)
+                    {
+                        <option value="@q.Id">@q.Code - @q.PositionTitle</option>
+                    }
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm" @onclick="SaveAsync">Save</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ResetForm">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<PositionItemDto>? _items;
+    private IReadOnlyList<OrganizationUnitDto> _units = [];
+    private IReadOnlyList<QualificationStandardRefDto> _qsRefs = [];
+    private string? _error;
+    private bool _includeInactive;
+    private Guid? _editingId;
+    private PositionItemUpsertDto _form = new(string.Empty, string.Empty, string.Empty, string.Empty, Guid.Empty, Guid.Empty);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var itemsTask = Api.GetPositionItemsAsync(_includeInactive);
+            var unitsTask = Api.GetOrganizationUnitsAsync(false);
+            var qsTask = Api.GetQualificationStandardsAsync(false);
+            await Task.WhenAll(itemsTask, unitsTask, qsTask);
+
+            _items = await itemsTask;
+            _units = (await unitsTask) ?? [];
+            _qsRefs = (await qsTask) ?? [];
+            EnsureFormReferences();
+            _error = _items is null ? "Could not load position items." : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void EnsureFormReferences()
+    {
+        if (_form.OrganizationUnitId == Guid.Empty && _units.Count > 0)
+        {
+            _form.OrganizationUnitId = _units[0].Id;
+        }
+
+        if (_form.QualificationStandardRefId == Guid.Empty && _qsRefs.Count > 0)
+        {
+            _form.QualificationStandardRefId = _qsRefs[0].Id;
+        }
+    }
+
+    private void BeginEdit(PositionItemDto item)
+    {
+        _editingId = item.Id;
+        _form = new PositionItemUpsertDto(
+            item.ItemNumber,
+            item.PlantillaNumber,
+            item.Title,
+            item.SalaryGrade,
+            item.OrganizationUnitId,
+            item.QualificationStandardRefId);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_form.ItemNumber) || string.IsNullOrWhiteSpace(_form.Title))
+        {
+            _error = "Item number and Title are required.";
+            return;
+        }
+
+        if (_editingId is null)
+        {
+            await Api.CreatePositionItemAsync(_form);
+        }
+        else
+        {
+            await Api.UpdatePositionItemAsync(_editingId.Value, _form);
+        }
+
+        ResetForm();
+        await LoadAsync();
+    }
+
+    private async Task DeactivateAsync(Guid id)
+    {
+        await Api.DeactivatePositionItemAsync(id);
+        await LoadAsync();
+    }
+
+    private void ResetForm()
+    {
+        _editingId = null;
+        _form = new PositionItemUpsertDto(string.Empty, string.Empty, string.Empty, string.Empty, _units.FirstOrDefault()?.Id ?? Guid.Empty, _qsRefs.FirstOrDefault()?.Id ?? Guid.Empty);
+    }
+}
