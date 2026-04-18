@@ -1,0 +1,103 @@
+@page "/applicant/job-postings"
+@inject RspDemoApiService Api
+@inject BrandingOptions Branding
+
+<PageTitle>@Branding.ProductName — Job postings</PageTitle>
+
+<h1 class="mb-3">Job postings</h1>
+<p class="text-muted small">Published vacancies only. Apply is a demo stub.</p>
+
+@if (_demoMessage is not null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="status">
+        @_demoMessage
+        <button type="button" class="btn-close" aria-label="Close" @onclick="DismissDemoMessage"></button>
+    </div>
+}
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+else if (_items is null)
+{
+    <p>Loading…</p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">No published vacancies right now.</p>
+}
+else
+{
+    <div class="table-responsive rsp-card">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>SG</th>
+                    <th>Position item</th>
+                    <th>Open</th>
+                    <th>Close</th>
+                    <th class="text-end">Apply</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in _items)
+                {
+                    <tr>
+                        <td>@v.Title</td>
+                        <td>@v.SalaryGrade</td>
+                        <td>@ResolvePositionItem(v.PositionItemId)</td>
+                        <td>@v.OpenFrom.ToString("yyyy-MM-dd")</td>
+                        <td>@v.OpenUntil.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => ShowApplyDemoAsync()">Apply</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<VacancyDto>? _items;
+    private Dictionary<Guid, string> _positionItems = [];
+    private string? _error;
+    private string? _demoMessage;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var itemsTask = Api.GetVacanciesAsync();
+            var posTask = Api.GetPositionItemsAsync();
+            await Task.WhenAll(itemsTask, posTask).ConfigureAwait(false);
+            var all = await itemsTask.ConfigureAwait(false);
+            var positions = await posTask.ConfigureAwait(false);
+            _positionItems = (positions ?? []).ToDictionary(x => x.Id, x => x.ItemNumber);
+            _items = (all ?? [])
+                .Where(v => string.Equals(v.PublicationStatus, "Published", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            _error = all is null ? "Could not load data. Start the API project." : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private Task ShowApplyDemoAsync()
+    {
+        _demoMessage = "Demo only — applications are not processed in this narrative demo.";
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void DismissDemoMessage() => _demoMessage = null;
+
+    private string ResolvePositionItem(Guid id) =>
+        _positionItems.TryGetValue(id, out var value) ? value : "Unknown";
+}

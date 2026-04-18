@@ -2,14 +2,16 @@
 
 Use this with the root [`README.md`](README.md) **Deployment (GitHub Pages + Render)** section.
 
-## 0) Client static site — GitHub Pages
+## 0) Client static site — GitHub Pages + custom domain
 
 The Blazor WASM client is deployed by GitHub Actions on every push to `main`:
 
 - Workflow: [`.github/workflows/deploy-client-pages.yml`](.github/workflows/deploy-client-pages.yml)
-- Live URL: `https://deeptux.github.io/apptest-hris/`
+- **Canonical public demo URL:** `https://handrian.space/apptest-hris/` (custom domain; infra may proxy this path to the GitHub Pages deployment).
+- **Upstream / alternate (GitHub Pages):** `https://deeptux.github.io/apptest-hris/`
 - GitHub Pages source must be **GitHub Actions** (not branch-based Pages)
-- This is a **project repo**, so production base path is **`/apptest-hris/`**. The workflow rewrites published `index.html` base href accordingly while local dev stays at `/`.
+- This is a **project repo**, so production base path is **`/apptest-hris/`**. The workflow rewrites published `index.html` base href accordingly while local dev stays at `/`. The same build can be served from **both** origins above when the path segment matches.
+- **Deep links / SPA:** GitHub Pages uses `404.html` copied from `index.html` for client-side routes. If deep links fail behind Cloudflare, check **proxy path, trailing slash, and fallback document** before changing Blazor routes.
 
 ## 1) API Web Service — Docker on Render
 
@@ -55,9 +57,9 @@ You should see JSON branding (HTTP 200). If you get a redirect, try `curl -L`.
 
 ## 4) API CORS
 
-- After the static site URL is known, allow it on the API.
-- Prefer the **`CORS_ORIGINS`** environment variable on Render: comma-separated list, no spaces (or trim handled). Example:
-  - `CORS_ORIGINS=https://deeptux.github.io`
+- After the static site origin(s) are known, allow each **origin** on the API (scheme + host + port — **no path**).
+- Prefer the **`CORS_ORIGINS`** environment variable on Render: comma-separated list (spaces trimmed per entry). When both GitHub Pages and the custom domain serve the UI, include **both** origins, for example:
+  - `CORS_ORIGINS=https://deeptux.github.io,https://handrian.space`
 - If `CORS_ORIGINS` is unset, the API falls back to `Cors:Origins` in [`appsettings.json`](src/Hris.Demo.Api/appsettings.json) (localhost for dev).
 
 ## 5) `.gitignore`

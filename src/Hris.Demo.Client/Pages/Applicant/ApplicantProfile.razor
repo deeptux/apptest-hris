@@ -1,0 +1,232 @@
+@page "/applicant/profile"
+@inject RspDemoApiService Api
+@inject BrandingOptions Branding
+
+<PageTitle>@Branding.ProductName — My profile</PageTitle>
+
+<div class="alert alert-secondary py-2 applicant-profile-note mb-3" role="note">
+    Simulated applicant view — not real authentication or HR records.
+</div>
+
+<h1 class="applicant-profile-title mb-3">Profile</h1>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+else if (_applicant is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <div class="applicant-profile-shell">
+        @if (_uploadError is not null)
+        {
+            <div class="alert alert-warning py-2 applicant-profile-note mb-3" role="status">@_uploadError</div>
+        }
+
+        <div class="dash-card applicant-profile-hero-card mb-3">
+            <div class="applicant-profile-cover" style="@CoverStyle">
+                <InputFile id="cover-upload-input" OnChange="OnCoverSelectedAsync" accept="image/*" class="d-none" />
+                <label for="cover-upload-input" class="applicant-upload-btn applicant-upload-btn--cover" title="Upload cover photo" aria-label="Upload cover photo">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9 4.5a2.5 2.5 0 0 1 2.1-1.5h1.8A2.5 2.5 0 0 1 15 4.5L15.4 6H18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h2.6L9 4.5Zm3 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-1.8a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Z" />
+                    </svg>
+                </label>
+            </div>
+            <div class="applicant-profile-hero-content">
+                <div class="applicant-profile-avatar-wrap">
+                    <div class="applicant-profile-avatar rounded-circle bg-light border d-inline-flex align-items-center justify-content-center">
+                        @if (!string.IsNullOrWhiteSpace(_avatarImageDataUrl))
+                        {
+                            <img src="@_avatarImageDataUrl" alt="Applicant profile photo" class="applicant-profile-avatar-image" />
+                        }
+                        else
+                        {
+                            <span class="applicant-profile-avatar-text text-muted" aria-hidden="true">@Initials(_applicant.FullName)</span>
+                        }
+                    </div>
+                    <InputFile id="avatar-upload-input" OnChange="OnAvatarSelectedAsync" accept="image/*" class="d-none" />
+                    <label for="avatar-upload-input" class="applicant-upload-btn applicant-upload-btn--avatar" title="Upload profile photo" aria-label="Upload profile photo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9 4.5a2.5 2.5 0 0 1 2.1-1.5h1.8A2.5 2.5 0 0 1 15 4.5L15.4 6H18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h2.6L9 4.5Zm3 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-1.8a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Z" />
+                        </svg>
+                    </label>
+                </div>
+                <div class="applicant-profile-hero-text">
+                    <h2 class="applicant-profile-name mb-1">@_applicant.FullName</h2>
+                    <p class="applicant-profile-caption text-muted mb-0">Demo persona</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 align-items-stretch">
+            <div class="col-12">
+                <div class="dash-card applicant-profile-summary-card">
+                    <div class="dash-card__head">
+                        <h3 class="dash-card__title mb-0">Application (demo)</h3>
+                    </div>
+                    <div class="dash-card__body">
+                        <dl class="applicant-kv-list mb-0">
+                            <div class="applicant-kv-row">
+                                <dt>Applied for</dt>
+                                <dd>@_applicant.AppliedFor</dd>
+                            </div>
+                            <div class="applicant-kv-row">
+                                <dt>Eligibility</dt>
+                                <dd><span class="badge text-bg-light border">@_applicant.EligibilityFlag</span></dd>
+                            </div>
+                            <div class="applicant-kv-row">
+                                <dt>Screen score</dt>
+                                <dd>@_applicant.ScreenScore</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (_profile is not null)
+        {
+            <div class="dash-card applicant-profile-detail-card mt-3">
+                <div class="dash-card__head">
+                    <h3 class="dash-card__title mb-0">Person profile</h3>
+                </div>
+                <div class="dash-card__body">
+                    <dl class="applicant-kv-list mb-0">
+                        <div class="applicant-kv-row">
+                            <dt>Full name</dt>
+                            <dd>@_profile.FullName</dd>
+                        </div>
+                        <div class="applicant-kv-row">
+                            <dt>Email</dt>
+                            <dd>@(_profile.EmailAddress ?? "—")</dd>
+                        </div>
+                        <div class="applicant-kv-row">
+                            <dt>Employee #</dt>
+                            <dd>@(_profile.EmployeeNumber ?? "—")</dd>
+                        </div>
+                        <div class="applicant-kv-row">
+                            <dt>Status</dt>
+                            <dd>
+                                @if (_profile.IsActive)
+                                {
+                                    <span class="badge text-bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">Inactive</span>
+                                }
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted applicant-profile-empty mt-3">No linked person profile in demo data for this applicant.</p>
+        }
+    </div>
+}
+
+@code {
+    private const long MaxUploadBytes = 5 * 1024 * 1024;
+    private ApplicantDto? _applicant;
+    private PersonProfileDto? _profile;
+    private string? _error;
+    private string? _uploadError;
+    private string? _avatarImageDataUrl;
+    private string? _coverImageDataUrl;
+
+    private string CoverStyle =>
+        string.IsNullOrWhiteSpace(_coverImageDataUrl)
+            ? string.Empty
+            : $"background-image: linear-gradient(130deg, rgba(30, 58, 95, 0.62), rgba(15, 40, 71, 0.45)), url('{_coverImageDataUrl}');";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var applicantsTask = Api.GetApplicantsAsync();
+            var profilesTask = Api.GetPersonProfilesAsync();
+            await Task.WhenAll(applicantsTask, profilesTask).ConfigureAwait(false);
+
+            var applicants = await applicantsTask.ConfigureAwait(false);
+            _applicant = applicants?.FirstOrDefault(a => a.Id == ApplicantDemoPersona.ApplicantId);
+            if (_applicant is null)
+            {
+                _error = "Demo applicant not found.";
+                return;
+            }
+
+            if (_applicant.PersonProfileId is { } pid)
+            {
+                var profiles = await profilesTask.ConfigureAwait(false);
+                _profile = profiles?.FirstOrDefault(p => p.Id == pid);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task OnAvatarSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _avatarImageDataUrl = await ReadImageAsDataUrlAsync(e.File).ConfigureAwait(false);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnCoverSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _coverImageDataUrl = await ReadImageAsDataUrlAsync(e.File).ConfigureAwait(false);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<string?> ReadImageAsDataUrlAsync(IBrowserFile? file)
+    {
+        _uploadError = null;
+        if (file is null)
+        {
+            return null;
+        }
+
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            _uploadError = "Please upload an image file only.";
+            return null;
+        }
+
+        if (file.Size > MaxUploadBytes)
+        {
+            _uploadError = "Image is too large. Max size is 5 MB.";
+            return null;
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxUploadBytes);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms).ConfigureAwait(false);
+            var bytes = ms.ToArray();
+            return $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch
+        {
+            _uploadError = "Could not read this image. Try another file.";
+            return null;
+        }
+    }
+
+    private static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+            return "?";
+        if (parts.Length == 1)
+            return parts[0].Length >= 2 ? parts[0][..2].ToUpperInvariant() : parts[0].ToUpperInvariant();
+        return string.Concat(parts[0][0], parts[^1][0]).ToUpperInvariant();
+    }
+}

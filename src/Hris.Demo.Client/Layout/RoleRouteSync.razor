@@ -1,0 +1,40 @@
+@inject NavigationManager Nav
+@implements IDisposable
+
+@code {
+    /// <summary>Current simulated role from parent layout.</summary>
+    [Parameter, EditorRequired]
+    public string SimulatedRole { get; set; } = "HR";
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        _ = InvokeAsync(ApplyGuardsAsync);
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        // Do not call NavigateTo synchronously from OnParametersSet — it can be ignored; defer to the renderer queue.
+        _ = InvokeAsync(ApplyGuardsAsync);
+    }
+
+    private Task ApplyGuardsAsync()
+    {
+        var rel = Nav.ToBaseRelativePath(Nav.Uri);
+        var target = SimulatedRoleRouteGuard.GetRedirectTarget(SimulatedRole, rel);
+        if (target is not null)
+        {
+            Nav.NavigateTo(target);
+        }
+
+        return Task.CompletedTask;
+    }
+}

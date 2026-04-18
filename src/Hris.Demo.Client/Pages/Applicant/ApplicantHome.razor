@@ -1,0 +1,142 @@
+@page "/applicant"
+@inject RspDemoApiService Api
+@inject BrandingOptions Branding
+
+<PageTitle>@Branding.ProductName — Applicant home</PageTitle>
+
+<h1 class="mb-2">Welcome, @(_persona?.FullName ?? "Applicant")</h1>
+<p class="text-muted small mb-4">You are viewing a single demo persona. Simulated role is not saved across devices or origins.</p>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+else if (_persona is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="dash-card h-100">
+                <div class="dash-card__head">
+                    <h2 class="dash-card__title h6 mb-0">Application</h2>
+                </div>
+                <div class="dash-card__body">
+                    <p class="mb-1"><strong>@_persona.AppliedFor</strong></p>
+                    <p class="small text-muted mb-0">Eligibility: <span class="badge text-bg-light border">@_persona.EligibilityFlag</span></p>
+                    <p class="small text-muted mb-0">Screen score: @_persona.ScreenScore</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dash-card h-100">
+                <div class="dash-card__head">
+                    <h2 class="dash-card__title h6 mb-0">Published openings</h2>
+                </div>
+                <div class="dash-card__body">
+                    <p class="display-6 mb-0">@_publishedVacancyCount</p>
+                    <p class="small text-muted mb-0">Vacancies you can browse</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dash-card h-100">
+                <div class="dash-card__head">
+                    <h2 class="dash-card__title h6 mb-0">Appointment package</h2>
+                </div>
+                <div class="dash-card__body">
+                    @if (_myAppointment is null)
+                    {
+                        <p class="small text-muted mb-0">No package in demo data.</p>
+                    }
+                    else
+                    {
+                        <p class="mb-1"><strong>@_myAppointment.PackageStatus</strong></p>
+                        <p class="small text-muted mb-0">@_myAppointment.PositionTitle</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dash-card mb-4">
+        <div class="dash-card__head">
+            <h2 class="dash-card__title h6 mb-0">RSP journey (illustrative)</h2>
+        </div>
+        <div class="dash-card__body">
+            @if (_journey is null || _journey.Count == 0)
+            {
+                <p class="small text-muted mb-0">Journey steps unavailable.</p>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    @foreach (var step in _journey.OrderBy(s => s.Order))
+                    {
+                        <span class="badge rounded-pill text-bg-light border px-3 py-2">@step.Order. @step.Title</span>
+                    }
+                </div>
+                <p class="small text-muted mt-3 mb-0">Your demo stage is inferred as <strong>@_inferredStage</strong> (placeholder).</p>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <NavLink class="btn btn-primary btn-sm" href="applicant/job-postings">Browse job postings</NavLink>
+        <NavLink class="btn btn-outline-secondary btn-sm" href="applicant/profile">View profile</NavLink>
+    </div>
+}
+
+@code {
+    private ApplicantDto? _persona;
+    private IReadOnlyList<RspJourneyStepDto>? _journey;
+    private int _publishedVacancyCount;
+    private AppointmentPackageDto? _myAppointment;
+    private string? _error;
+    private string _inferredStage = "Screening";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var applicantsTask = Api.GetApplicantsAsync();
+            var vacanciesTask = Api.GetVacanciesAsync();
+            var appointmentsTask = Api.GetAppointmentsAsync();
+            var journeyTask = Api.GetJourneyStepsAsync();
+            await Task.WhenAll(applicantsTask, vacanciesTask, appointmentsTask, journeyTask).ConfigureAwait(false);
+
+            var applicants = await applicantsTask.ConfigureAwait(false);
+            _persona = applicants?.FirstOrDefault(a => a.Id == ApplicantDemoPersona.ApplicantId);
+            if (_persona is null)
+            {
+                _error = "Demo applicant not found. Ensure the API mock seed matches ApplicantDemoPersona.";
+                return;
+            }
+
+            var vacancies = await vacanciesTask.ConfigureAwait(false);
+            _publishedVacancyCount = (vacancies ?? [])
+                .Count(v => string.Equals(v.PublicationStatus, "Published", StringComparison.OrdinalIgnoreCase));
+
+            var appointments = await appointmentsTask.ConfigureAwait(false);
+            _myAppointment = appointments?.FirstOrDefault(a => a.SelectedApplicantId == ApplicantDemoPersona.ApplicantId);
+
+            _journey = await journeyTask.ConfigureAwait(false);
+            _inferredStage = InferStage(_persona, _myAppointment);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static string InferStage(ApplicantDto persona, AppointmentPackageDto? pkg)
+    {
+        if (pkg is not null && string.Equals(pkg.PackageStatus, "Ready for approval", StringComparison.OrdinalIgnoreCase))
+            return "Appointment readiness";
+        if (string.Equals(persona.EligibilityFlag, "Qualified", StringComparison.OrdinalIgnoreCase))
+            return "Post-screening";
+        return "Application / screening";
+    }
+}

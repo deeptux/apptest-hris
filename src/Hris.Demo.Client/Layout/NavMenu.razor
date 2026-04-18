@@ -12,69 +12,98 @@
     </div>
 </div>
 
+@if (!collapseNavMenu)
+{
+    <button type="button" class="nav-mobile-backdrop" aria-label="Close navigation" @onclick="ToggleNavMenu"></button>
+}
+
 <div class="@($"{NavMenuCssClass} nav-scrollable {(IsCollapsed ? "is-collapsed" : string.Empty)}")" @onclick="ToggleNavMenu">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="nav-glyph nav-glyph-home" aria-hidden="true"><NavMenuIcon Name="home" /></span><span class="nav-label">Home</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="journey">
-                <span class="nav-glyph nav-glyph-journey" aria-hidden="true"><NavMenuIcon Name="journey" /></span><span class="nav-label">RSP journey</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="manpower">
-                <span class="nav-glyph nav-glyph-manpower" aria-hidden="true"><NavMenuIcon Name="manpower" /></span><span class="nav-label">Manpower requests</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="vacancies">
-                <span class="nav-glyph nav-glyph-vacancies" aria-hidden="true"><NavMenuIcon Name="vacancies" /></span><span class="nav-label">Vacancies</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="applicants">
-                <span class="nav-glyph nav-glyph-applicants" aria-hidden="true"><NavMenuIcon Name="applicants" /></span><span class="nav-label">Applicants</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="appointments">
-                <span class="nav-glyph nav-glyph-appointments" aria-hidden="true"><NavMenuIcon Name="appointments" /></span><span class="nav-label">Appointments</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="audit">
-                <span class="nav-glyph nav-glyph-audit" aria-hidden="true"><NavMenuIcon Name="audit" /></span><span class="nav-label">Audit log</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="foundation/organization-units">
-                <span class="nav-glyph nav-glyph-org" aria-hidden="true"><NavMenuIcon Name="org" /></span><span class="nav-label">Organization units</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="foundation/position-items">
-                <span class="nav-glyph nav-glyph-position" aria-hidden="true"><NavMenuIcon Name="position" /></span><span class="nav-label">Position items</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="foundation/person-profiles">
-                <span class="nav-glyph nav-glyph-person" aria-hidden="true"><NavMenuIcon Name="person" /></span><span class="nav-label">Person profiles</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="foundation/qualification-standards">
-                <span class="nav-glyph nav-glyph-qs" aria-hidden="true"><NavMenuIcon Name="qs" /></span><span class="nav-label">Qualification standards</span>
-            </NavLink>
-        </div>
+        @if (IsApplicantView)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="applicant" Match="NavLinkMatch.All">
+                    <span class="nav-glyph nav-glyph-home" aria-hidden="true"><NavMenuIcon Name="home" /></span><span class="nav-label">Applicant home</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="applicant/job-postings">
+                    <span class="nav-glyph nav-glyph-vacancies" aria-hidden="true"><NavMenuIcon Name="vacancies" /></span><span class="nav-label">Job postings</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="applicant/profile">
+                    <span class="nav-glyph nav-glyph-person" aria-hidden="true"><NavMenuIcon Name="person" /></span><span class="nav-label">Profile</span>
+                </NavLink>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="nav-glyph nav-glyph-home" aria-hidden="true"><NavMenuIcon Name="home" /></span><span class="nav-label">Home</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="journey">
+                    <span class="nav-glyph nav-glyph-journey" aria-hidden="true"><NavMenuIcon Name="journey" /></span><span class="nav-label">RSP journey</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="manpower">
+                    <span class="nav-glyph nav-glyph-manpower" aria-hidden="true"><NavMenuIcon Name="manpower" /></span><span class="nav-label">Manpower requests</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="vacancies">
+                    <span class="nav-glyph nav-glyph-vacancies" aria-hidden="true"><NavMenuIcon Name="vacancies" /></span><span class="nav-label">Vacancies</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="applicants">
+                    <span class="nav-glyph nav-glyph-applicants" aria-hidden="true"><NavMenuIcon Name="applicants" /></span><span class="nav-label">Applicants</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="appointments">
+                    <span class="nav-glyph nav-glyph-appointments" aria-hidden="true"><NavMenuIcon Name="appointments" /></span><span class="nav-label">Appointments</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="audit">
+                    <span class="nav-glyph nav-glyph-audit" aria-hidden="true"><NavMenuIcon Name="audit" /></span><span class="nav-label">Audit log</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="foundation/organization-units">
+                    <span class="nav-glyph nav-glyph-org" aria-hidden="true"><NavMenuIcon Name="org" /></span><span class="nav-label">Organization units</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="foundation/position-items">
+                    <span class="nav-glyph nav-glyph-position" aria-hidden="true"><NavMenuIcon Name="position" /></span><span class="nav-label">Position items</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="foundation/person-profiles">
+                    <span class="nav-glyph nav-glyph-person" aria-hidden="true"><NavMenuIcon Name="person" /></span><span class="nav-label">Person profiles</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="foundation/qualification-standards">
+                    <span class="nav-glyph nav-glyph-qs" aria-hidden="true"><NavMenuIcon Name="qs" /></span><span class="nav-label">Qualification standards</span>
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
 
 @code {
     [Parameter]
     public bool IsCollapsed { get; set; }
+
+    [Parameter]
+    public bool IsApplicantView { get; set; }
 
     [Parameter]
     public EventCallback OnToggleSidebar { get; set; }

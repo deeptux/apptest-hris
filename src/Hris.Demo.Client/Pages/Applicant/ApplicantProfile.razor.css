@@ -1,0 +1,228 @@
+.applicant-profile-shell {
+    max-width: 1120px;
+}
+
+.applicant-profile-hero-card {
+    overflow: visible;
+}
+
+.applicant-profile-cover {
+    height: 220px;
+    border-radius: 0.85rem 0.85rem 0 0;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2847 55%, #1f7aa8 100%);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.applicant-profile-hero-content {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-top: -88px;
+    padding: 0 1.35rem 1.15rem;
+}
+
+.applicant-profile-hero-text {
+    padding-bottom: 0.35rem;
+}
+
+.applicant-profile-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.applicant-profile-note {
+    font-size: 0.92rem;
+}
+
+.applicant-profile-identity-card {
+    min-height: 0;
+}
+
+.applicant-profile-avatar-wrap {
+    position: relative;
+    width: 176px;
+    height: 176px;
+    flex: 0 0 auto;
+}
+
+.applicant-profile-avatar {
+    width: 176px;
+    height: 176px;
+    border: 6px solid #fff !important;
+    overflow: hidden;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.22);
+}
+
+.applicant-profile-avatar-text {
+    font-size: 3rem;
+    line-height: 1;
+}
+
+.applicant-profile-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.applicant-upload-btn {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 3px solid #fff;
+    background: #e5e7eb;
+    color: #111827;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.applicant-upload-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.24);
+    background: #f3f4f6;
+}
+
+.applicant-upload-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+.applicant-upload-btn--avatar {
+    right: -6px;
+    bottom: 10px;
+}
+
+.applicant-upload-btn--cover {
+    right: 16px;
+    bottom: 14px;
+    width: 42px;
+    height: 42px;
+}
+
+.applicant-upload-btn--cover svg {
+    width: 20px;
+    height: 20px;
+}
+
+.applicant-profile-name {
+    font-size: 1.28rem;
+    font-weight: 700;
+}
+
+.applicant-profile-caption {
+    font-size: 0.95rem;
+}
+
+.applicant-profile-summary-card .dash-card__body,
+.applicant-profile-detail-card .dash-card__body {
+    padding-top: 0.85rem;
+    padding-bottom: 0.95rem;
+}
+
+.applicant-kv-list {
+    margin: 0;
+}
+
+.applicant-kv-row {
+    display: grid;
+    grid-template-columns: minmax(130px, 200px) minmax(0, 1fr);
+    gap: 0.9rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.applicant-kv-row:last-child {
+    border-bottom: 0;
+}
+
+.applicant-kv-row dt,
+.applicant-kv-row dd {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.4;
+}
+
+.applicant-kv-row dt {
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.applicant-kv-row dd {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.applicant-profile-empty {
+    font-size: 0.95rem;
+}
+
+@media (max-width: 767.98px) {
+    .applicant-profile-title {
+        font-size: 1.75rem;
+    }
+
+    .applicant-profile-cover {
+        height: 190px;
+    }
+
+    .applicant-profile-hero-content {
+        margin-top: -72px;
+        padding: 0 1rem 1rem;
+        gap: 0.8rem;
+        align-items: center;
+    }
+
+    .applicant-profile-avatar-wrap {
+        width: 144px;
+        height: 144px;
+    }
+
+    .applicant-profile-avatar {
+        width: 144px;
+        height: 144px;
+    }
+
+    .applicant-profile-avatar-text {
+        font-size: 2.35rem;
+    }
+
+    .applicant-upload-btn {
+        width: 42px;
+        height: 42px;
+    }
+
+    .applicant-upload-btn svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .applicant-upload-btn--avatar {
+        right: -4px;
+        bottom: 6px;
+    }
+
+    .applicant-upload-btn--cover {
+        right: 12px;
+        bottom: 12px;
+    }
+
+    .applicant-kv-row {
+        grid-template-columns: 1fr;
+        gap: 0.3rem;
+        padding: 0.5rem 0;
+    }
+
+    .applicant-kv-row dt,
+    .applicant-kv-row dd {
+        font-size: 0.95rem;
+    }
+}

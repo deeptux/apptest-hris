@@ -134,6 +134,88 @@
     color: white;
 }
 
+/* Mobile: slide-in drawer over content (not in-document collapse / push-down). */
+@media (max-width: 640.98px) {
+    .brand-chevron {
+        display: none;
+    }
+
+    .nav-mobile-backdrop {
+        position: fixed;
+        z-index: 1040;
+        inset: 3.5rem 0 0 0;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        background: rgba(15, 23, 42, 0.45);
+        cursor: pointer;
+        animation: navBackdropFade 0.2s ease-out;
+    }
+
+    .nav-scrollable.collapse {
+        display: none !important;
+    }
+
+    .nav-scrollable:not(.collapse) {
+        position: fixed;
+        z-index: 1050;
+        top: 3.5rem;
+        left: 0;
+        bottom: 0;
+        width: min(300px, 88vw);
+        max-width: 320px;
+        display: block !important;
+        height: auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background-image: linear-gradient(165deg, var(--color-primary-teal-dark) 0%, var(--color-primary-teal) 45%, #0f5132 100%);
+        box-shadow: 6px 0 28px rgba(15, 23, 42, 0.35);
+        animation: navDrawerSlide 0.22s ease-out;
+    }
+
+    .nav-scrollable:not(.collapse).is-collapsed .nav-label {
+        display: inline;
+    }
+
+    .nav-scrollable:not(.collapse).is-collapsed .nav-item ::deep a {
+        justify-content: flex-start;
+        margin: 0;
+    }
+
+    .top-row {
+        position: relative;
+        z-index: 1060;
+    }
+
+    .navbar-toggler {
+        position: relative;
+        z-index: 1060;
+    }
+}
+
+@keyframes navDrawerSlide {
+    from {
+        transform: translateX(-100%);
+        opacity: 0.85;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes navBackdropFade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;

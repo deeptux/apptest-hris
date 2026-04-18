@@ -1,9 +1,10 @@
 ﻿@inherits LayoutComponentBase
 @inject BrandingOptions Branding
+@inject NavigationManager NavigationManager
 
 <div class="page">
     <div class="sidebar @(_isSidebarCollapsed ? "sidebar-collapsed" : string.Empty)">
-        <NavMenu IsCollapsed="_isSidebarCollapsed" OnToggleSidebar="ToggleSidebar" />
+        <NavMenu IsCollapsed="_isSidebarCollapsed" IsApplicantView="IsApplicantView" OnToggleSidebar="ToggleSidebar" />
     </div>
 
     <main>
@@ -12,17 +13,19 @@
                 <div class="fw-semibold text-body">@Branding.OrganizationName</div>
                 <div class="small text-muted">@Branding.Tagline</div>
             </div>
-            <label class="small text-muted mb-0 d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0 d-flex align-items-center gap-2" title="Demo persona view — not real authentication">
                 <span>Simulated role</span>
-                <select class="form-select form-select-sm" style="width: auto; min-width: 9rem;" @bind="_simulatedRole" @bind:after="StateHasChanged">
+                <select class="form-select form-select-sm" style="width: auto; min-width: 10rem;" @bind="_simulatedRole" @bind:after="OnSimulatedRoleChanged">
                     <option value="HR">HR</option>
                     <option value="Approver">Approver</option>
                     <option value="HiringManager">Hiring manager</option>
+                    <option value="Applicant">Applicant</option>
                 </select>
             </label>
         </div>
 
         <article class="content px-4">
+            <RoleRouteSync SimulatedRole="@_simulatedRole" />
             <CascadingValue Value="_simulatedRole" Name="SimulatedRole">
                 @Body
             </CascadingValue>
@@ -34,8 +37,28 @@
     private string _simulatedRole = "HR";
     private bool _isSidebarCollapsed;
 
+    private bool IsApplicantView =>
+        string.Equals(_simulatedRole, "Applicant", StringComparison.OrdinalIgnoreCase);
+
     private void ToggleSidebar()
     {
         _isSidebarCollapsed = !_isSidebarCollapsed;
+    }
+
+    private void OnSimulatedRoleChanged()
+    {
+        _ = InvokeAsync(SyncRouteToRoleAsync);
+    }
+
+    private Task SyncRouteToRoleAsync()
+    {
+        var rel = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var target = SimulatedRoleRouteGuard.GetRedirectTarget(_simulatedRole, rel);
+        if (target is not null)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+
+        return Task.CompletedTask;
     }
 }

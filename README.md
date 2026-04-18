@@ -37,30 +37,34 @@ At runtime the WASM host loads, in order:
 
 Replace the placeholder in `appsettings.Production.json` before publishing to production, or generate that file in CI with the real API URL.
 
+**Simulated role & storage:** The header **Simulated role** (HR / Approver / Hiring manager / **Applicant**) is **in-memory** only (refresh resets). **Applicant** mode shows a **single pinned demo persona** (Ana Reyes — see [`ApplicantDemoPersona`](src/Hris.Demo.Client/Services/ApplicantDemoPersona.cs) and API [`MockRspStore`](src/Hris.Demo.Api/Services/MockRspStore.cs)). If you later persist UI prefs in **`localStorage`**, remember values are **per-origin** (`github.io` vs `handrian.space` do not share).
+
 ## Deployment (GitHub Pages + Render)
 
 **Full checklist:** [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 | Item | Notes |
 |------|--------|
-| **Client static hosting** | GitHub Pages via workflow [`.github/workflows/deploy-client-pages.yml`](.github/workflows/deploy-client-pages.yml). Every push to `main` publishes the Blazor WASM client. |
-| **Live client URL** | `https://deeptux.github.io/apptest-hris/` |
-| **Project-repo base path** | GitHub Pages serves this repo under `/apptest-hris/` (not `/`). The workflow rewrites the published `index.html` base href for production only, so localhost behavior stays unchanged. |
-| **API Web Service** | Use **Docker** (not Node). **Dockerfile path:** `./Dockerfile` at repo root. Leave Render **build command** empty — the image build runs `dotnet publish` inside Docker. See [`DEPLOYMENT.md`](DEPLOYMENT.md) §0. |
+| **Client static hosting** | GitHub Pages via workflow [`.github/workflows/deploy-client-pages.yml`](.github/workflows/deploy-client-pages.yml). Every push to `main` publishes the Blazor WASM client. Optional: **Cloudflare** (or similar) can proxy a custom host to the same static output. |
+| **Canonical public demo URL** | **`https://handrian.space/apptest-hris/`** (custom domain + path). |
+| **Upstream / alternate (GitHub Pages)** | `https://deeptux.github.io/apptest-hris/` — same app base path **`/apptest-hris/`**; one production build works for both when infra matches. |
+| **Project-repo base path** | Production uses base href **`/apptest-hris/`** (not `/`). The workflow rewrites published `index.html` accordingly; local `dotnet run` stays at `/`. |
+| **API Web Service** | Use **Docker** (not Node). **Dockerfile path:** `./Dockerfile` at repo root. Leave Render **build command** empty — the image build runs `dotnet publish` inside Docker. See [`DEPLOYMENT.md`](DEPLOYMENT.md) §1. |
 | **PORT** | Render sets **`PORT`**; the API binds **`http://0.0.0.0:{PORT}`** when it is set ([`Program.cs`](src/Hris.Demo.Api/Program.cs)). |
 | **.NET SDK** | For **local** / CI builds, use SDK **9** ([`global.json`](global.json)). The Docker image brings its own SDK for the API service. |
 | **API secrets** | Set `Ai__Gemini__ApiKey` (and any other secrets) in the **API** web service environment on Render, not in git. |
-| **CORS** | Set **`CORS_ORIGINS`** on the API to include your frontend origin(s), comma-separated. For this repo include `https://deeptux.github.io` (origin only, no path). |
-| **Client → API URL** | Production uses `wwwroot/appsettings.Production.json` with `ApiBaseUrl: https://apptest-hris.onrender.com` (also enforced in the Pages workflow publish output). |
+| **CORS** | Set **`CORS_ORIGINS`** on the API to every **browser origin** that serves the WASM UI, comma-separated, **origin only** (no path). Example when both hosts are used: `https://deeptux.github.io,https://handrian.space`. |
+| **Client → API URL** | Production uses `wwwroot/appsettings.Production.json` with `ApiBaseUrl: https://apptest-hris.onrender.com` (also enforced in the Pages workflow publish output). The browser calls the API **directly** (cross-origin); do not put the API behind an extra Worker for this demo unless you intentionally change that model. |
 
 **Deployed URLs:**
 
 | Service | URL |
 |---------|---------------------|
-| Blazor static site (GitHub Pages) | `https://deeptux.github.io/apptest-hris/` |
+| Blazor static site (canonical) | `https://handrian.space/apptest-hris/` |
+| Blazor static site (GitHub Pages upstream) | `https://deeptux.github.io/apptest-hris/` |
 | ASP.NET Core API (Render) | `https://apptest-hris.onrender.com` |
 
-**Smoke test:** Open the static site over HTTPS; in browser DevTools → Network, confirm API calls succeed with no CORS errors.
+**Smoke test:** Open the static site over HTTPS; in browser DevTools → Network, confirm API calls succeed with no CORS errors. Switch **Simulated role** to **Applicant** → should land on **`/applicant`** with applicant-only nav; switch back to **HR** → **`/`** and full HRIS nav.
 
 ## Solution layout
 
