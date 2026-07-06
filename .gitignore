@@ -1,11 +1,11 @@
+src/Hris.Demo.Client/wwwroot/404.html
+artifacts/wwwroot/.nojekyll
+
 ## Local-only materials (meetings, slide exports, client data) — not published
 /references/
 
 ## Internal documentation (local only — not on GitHub)
 /docs/
-
-## Editor / agent rules (local only — not on GitHub)
-/.cursor/
 
 ## Build outputs — .NET
 **/bin/
@@ -45,6 +45,7 @@ Desktop.ini
 
 ## Test / coverage
 TestResults/
+/.cursor/
 [Tt]est[Rr]esult*/
 *.coverage
 *.coveragexml
@@ -64,4 +65,9 @@ coverage*.xml
 ## Blazor / WASM / tooling
 **/wwwroot/lib/**/node_modules/
 node_modules/
+
+## Local SQLite (API file metadata)
+src/Hris.Demo.Api/Data/*.db
+src/Hris.Demo.Api/Data/*.db-shm
+src/Hris.Demo.Api/Data/*.db-wal
 

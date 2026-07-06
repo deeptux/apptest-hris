@@ -98,6 +98,8 @@ public sealed class MockRspStore
     public IReadOnlyList<ManpowerRequestDto> ManpowerRequests => _manpowerRequests;
     public IReadOnlyList<VacancyDto> Vacancies => _vacancies;
     public IReadOnlyList<ApplicantDto> Applicants => _applicants;
+
+    public bool ApplicantExists(Guid id) => _applicants.Exists(a => a.Id == id);
     public IReadOnlyList<AppointmentPackageDto> Appointments => _appointments;
     public IReadOnlyList<AuditEventDto> AuditEvents => _auditEvents;
 

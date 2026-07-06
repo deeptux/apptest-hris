@@ -1,9 +1,12 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hris.Demo.Api.Configuration;
+using Hris.Demo.Api.Data;
 using Hris.Demo.Api.Services;
 using Hris.Demo.Shared;
 using Hris.Demo.Shared.Ai;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -19,6 +22,15 @@ builder.Services.Configure<BrandingOptions>(builder.Configuration.GetSection(Bra
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
 
 builder.Services.AddSingleton<MockRspStore>();
+
+var dataDir = Path.Combine(builder.Environment.ContentRootPath, "Data");
+Directory.CreateDirectory(dataDir);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("AppDb")));
+
+StorageRegistrar.AddObjectStorage(builder);
+builder.Services.AddScoped<ApplicantProfileFilesService>();
 builder.Services.AddSingleton<AiDailyQuotaTracker>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<OllamaJobDescriptionGenerator>();
@@ -66,6 +78,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
 builder.Services.AddOpenApi();
 
@@ -92,6 +105,12 @@ static string[] ResolveCorsOrigins(IConfiguration configuration)
 }
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync().ConfigureAwait(false);
+}
 
 if (app.Environment.IsDevelopment())
 {

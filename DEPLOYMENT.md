@@ -48,6 +48,28 @@ You should see JSON branding (HTTP 200). If you get a redirect, try `curl -L`.
 - On **Render**, set API secrets as environment variables (e.g. `Ai__Gemini__ApiKey`).
 - **Local:** `dotnet user-secrets` for the API project only.
 
+### 2.1) Applicant profile uploads — AWS S3 (optional)
+
+Applicant **avatar**, **cover**, and **PDF** uploads store bytes in **S3** and metadata in the API’s **SQLite** file (`ConnectionStrings__AppDb` / `Data/hris-files.db` under the API content root). **Uploads are not stored on the API’s local filesystem** as loose files — only the SQLite file (and S3 objects) hold data.
+
+On the **Render Web Service** (API), set:
+
+| Variable | Purpose |
+|----------|---------|
+| `Storage__Provider` | Set to `S3` to enable uploads/downloads. |
+| `Storage__S3__BucketName` | Target bucket. |
+| `Storage__S3__Region` | AWS region id (e.g. `ap-southeast-1`). |
+| `Storage__S3__AccessKeyId` | IAM access key with `s3:PutObject`, `s3:GetObject`, `s3:HeadObject`, `s3:DeleteObject` on the bucket/prefix. |
+| `Storage__S3__SecretAccessKey` | IAM secret (never commit). |
+| `Storage__S3__UsePathStyle` | `true` only if you use path-style endpoints (e.g. some S3-compatible stores); default `false` for AWS. |
+| `Storage__MaxImageBytes` | Optional override (default **1.5 MB** hard cap for stored images). |
+| `Storage__MaxPdfBytes` | Optional override (default **10 MB** for PDFs). |
+| `ConnectionStrings__AppDb` | Optional SQLite path; default is `Data Source=Data/hris-files.db` next to the published API. |
+
+**S3 bucket CORS (required for browser → S3 PUT):** The Blazor site uploads **directly** to S3 using the pre-signed URL. Add a CORS rule on the bucket allowing **`PUT`** (and **`HEAD`** for verification) from every **static site origin** that serves the WASM UI (scheme + host, no path), for example `https://handrian.space` and `https://deeptux.github.io`. Include **`GET`** if you open signed object URLs in new tabs from the same origins. Example `AllowedMethods`: `GET`, `PUT`, `HEAD`. Typical `AllowedHeaders`: `*` (or at least `Content-Type`, `x-amz-*`).
+
+**Note:** On Render’s ephemeral filesystem, the SQLite file is recreated unless you attach **persistent disk** or point `ConnectionStrings__AppDb` to external storage — metadata can reset on redeploy unless you plan for persistence.
+
 ## 3) Client `ApiBaseUrl` (production)
 
 - Published Blazor WASM loads `wwwroot/appsettings.json`, then `wwwroot/appsettings.{Environment}.json` (see [`Program.cs`](src/Hris.Demo.Client/Program.cs)).
@@ -76,6 +98,7 @@ You should see JSON branding (HTTP 200). If you get a redirect, try `curl -L`.
 1. Open the **static site** over **HTTPS**.
 2. Browser **DevTools → Network**: load dashboard / queues; confirm API calls return **200** (not CORS errors).
 3. If CORS fails, verify `CORS_ORIGINS` matches the static site origin exactly (scheme + host, no path).
+4. Optional: **Simulated role → Applicant → Profile** — with S3 configured, upload a small image and a PDF; confirm `PUT` to `*.amazonaws.com` succeeds (bucket CORS) and `GET` download links open while valid.
 
 ## Appendix: Purging `docs/` from all Git history (optional)
 

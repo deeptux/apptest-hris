@@ -1,11 +1,21 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hris.Demo.Shared;
+using Hris.Demo.Shared.ApplicantFiles;
 using Hris.Demo.Shared.Dtos;
 
 namespace Hris.Demo.Client.Services;
 
 public sealed class RspDemoApiService(HttpClient http)
 {
+    private static readonly JsonSerializerOptions ApplicantFileJson = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+    };
     public Task<IReadOnlyList<RspJourneyStepDto>?> GetJourneyStepsAsync(CancellationToken cancellationToken = default) =>
         http.GetFromJsonAsync<IReadOnlyList<RspJourneyStepDto>>("api/RspJourney/steps", cancellationToken);
 
@@ -130,6 +140,144 @@ public sealed class RspDemoApiService(HttpClient http)
     {
         var response = await http.PostAsJsonAsync($"api/Appointments/{id}/mark-appointed", new AppointmentMarkAsAppointedDto(actorRole, effectivity), cancellationToken).ConfigureAwait(false);
         return await ReadOrDefaultAsync<AppointmentPackageDto>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<(ApplicantFileUploadUrlResponse? Body, string? Error)> RequestApplicantFileUploadUrlAsync(
+        Guid applicantId,
+        ApplicantFileUploadUrlRequest body,
+        CancellationToken cancellationToken = default)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"api/applicants/{applicantId}/files/upload-url");
+        req.Content = JsonContent.Create(body, options: ApplicantFileJson);
+        var response = await http.SendAsync(req, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, await ReadApiErrorAsync(response, cancellationToken).ConfigureAwait(false));
+        }
+
+        var parsed = await response.Content.ReadFromJsonAsync<ApplicantFileUploadUrlResponse>(ApplicantFileJson, cancellationToken)
+            .ConfigureAwait(false);
+        return (parsed, null);
+    }
+
+    public async Task<(ApplicantFileMetadataDto? Body, string? Error)> CompleteApplicantFileUploadAsync(
+        Guid applicantId,
+        ApplicantFileCompleteRequest body,
+        CancellationToken cancellationToken = default)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"api/applicants/{applicantId}/files/complete");
+        req.Content = JsonContent.Create(body, options: ApplicantFileJson);
+        var response = await http.SendAsync(req, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, await ReadApiErrorAsync(response, cancellationToken).ConfigureAwait(false));
+        }
+
+        var parsed = await response.Content.ReadFromJsonAsync<ApplicantFileMetadataDto>(ApplicantFileJson, cancellationToken)
+            .ConfigureAwait(false);
+        return (parsed, null);
+    }
+
+    public async Task<(IReadOnlyList<ApplicantFileMetadataDto>? Body, string? Error)> GetApplicantFilesAsync(
+        Guid applicantId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync($"api/applicants/{applicantId}/files", cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return (null, "Applicant not found.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, await ReadApiErrorAsync(response, cancellationToken).ConfigureAwait(false));
+        }
+
+        var parsed = await response.Content.ReadFromJsonAsync<List<ApplicantFileMetadataDto>>(ApplicantFileJson, cancellationToken)
+            .ConfigureAwait(false);
+        return (parsed, null);
+    }
+
+    public async Task<(ApplicantFileDownloadUrlResponse? Body, string? Error)> GetApplicantFileDownloadUrlAsync(
+        Guid applicantId,
+        Guid fileId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync($"api/applicants/{applicantId}/files/{fileId}/download-url", cancellationToken)
+            .ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, await ReadApiErrorAsync(response, cancellationToken).ConfigureAwait(false));
+        }
+
+        var parsed = await response.Content.ReadFromJsonAsync<ApplicantFileDownloadUrlResponse>(ApplicantFileJson, cancellationToken)
+            .ConfigureAwait(false);
+        return (parsed, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> DeleteApplicantFileAsync(
+        Guid applicantId,
+        Guid fileId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/applicants/{applicantId}/files/{fileId}", cancellationToken)
+            .ConfigureAwait(false);
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, null);
+        }
+
+        return (false, await ReadApiErrorAsync(response, cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>PUT bytes to S3 (or compatible) using a pre-signed URL; uses a separate <see cref="HttpClient"/> so API base address does not apply.</summary>
+    public static async Task<string?> PutToPresignedUrlAsync(
+        string uploadUrl,
+        byte[] body,
+        IReadOnlyDictionary<string, string> requiredHeaders,
+        CancellationToken cancellationToken = default)
+    {
+        using var client = new HttpClient();
+        using var content = new ByteArrayContent(body);
+        foreach (var pair in requiredHeaders)
+        {
+            if (string.Equals(pair.Key, "Content-Type", StringComparison.OrdinalIgnoreCase))
+            {
+                content.Headers.ContentType = MediaTypeHeaderValue.Parse(pair.Value);
+            }
+            else
+            {
+                content.Headers.TryAddWithoutValidation(pair.Key, pair.Value);
+            }
+        }
+
+        var response = await client.PutAsync(uploadUrl, content, cancellationToken).ConfigureAwait(false);
+        if (response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        return $"Direct upload failed ({(int)response.StatusCode}): {text}";
+    }
+
+    private static async Task<string?> ReadApiErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (doc.RootElement.TryGetProperty("message", out var m))
+            {
+                return m.GetString() ?? response.ReasonPhrase;
+            }
+        }
+        catch
+        {
+            /* fall through */
+        }
+
+        return response.ReasonPhrase ?? $"HTTP {(int)response.StatusCode}";
     }
 
     private static async Task<T?> ReadOrDefaultAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)

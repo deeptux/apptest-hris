@@ -1,6 +1,10 @@
 @page "/applicant/profile"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Hris.Demo.Shared.ApplicantFiles
 @inject RspDemoApiService Api
 @inject BrandingOptions Branding
+@inject IJSRuntime Js
 
 <PageTitle>@Branding.ProductName — My profile</PageTitle>
 
@@ -25,10 +29,23 @@ else
         {
             <div class="alert alert-warning py-2 applicant-profile-note mb-3" role="status">@_uploadError</div>
         }
+        @if (_storageHint is not null)
+        {
+            <div class="alert alert-info py-2 applicant-profile-note mb-3" role="note">@_storageHint</div>
+        }
+        @if (_busyUpload)
+        {
+            <p class="text-muted small mb-3">Uploading…</p>
+        }
 
         <div class="dash-card applicant-profile-hero-card mb-3">
-            <div class="applicant-profile-cover" style="@CoverStyle">
-                <InputFile id="cover-upload-input" OnChange="OnCoverSelectedAsync" accept="image/*" class="d-none" />
+            <div class="applicant-profile-cover">
+                @if (!string.IsNullOrWhiteSpace(_coverSignedUrl))
+                {
+                    <img src="@_coverSignedUrl" alt="" class="applicant-profile-cover-photo" />
+                }
+                <div class="applicant-profile-cover-gradient" aria-hidden="true"></div>
+                <InputFile id="cover-upload-input" OnChange="OnCoverSelectedAsync" accept="image/jpeg,image/png,image/webp" class="d-none" disabled="@_busyUpload" />
                 <label for="cover-upload-input" class="applicant-upload-btn applicant-upload-btn--cover" title="Upload cover photo" aria-label="Upload cover photo">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M9 4.5a2.5 2.5 0 0 1 2.1-1.5h1.8A2.5 2.5 0 0 1 15 4.5L15.4 6H18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h2.6L9 4.5Zm3 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-1.8a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Z" />
@@ -38,16 +55,16 @@ else
             <div class="applicant-profile-hero-content">
                 <div class="applicant-profile-avatar-wrap">
                     <div class="applicant-profile-avatar rounded-circle bg-light border d-inline-flex align-items-center justify-content-center">
-                        @if (!string.IsNullOrWhiteSpace(_avatarImageDataUrl))
+                        @if (!string.IsNullOrWhiteSpace(_avatarSignedUrl))
                         {
-                            <img src="@_avatarImageDataUrl" alt="Applicant profile photo" class="applicant-profile-avatar-image" />
+                            <img src="@_avatarSignedUrl" alt="Applicant profile photo" class="applicant-profile-avatar-image" />
                         }
                         else
                         {
                             <span class="applicant-profile-avatar-text text-muted" aria-hidden="true">@Initials(_applicant.FullName)</span>
                         }
                     </div>
-                    <InputFile id="avatar-upload-input" OnChange="OnAvatarSelectedAsync" accept="image/*" class="d-none" />
+                    <InputFile id="avatar-upload-input" OnChange="OnAvatarSelectedAsync" accept="image/jpeg,image/png,image/webp" class="d-none" disabled="@_busyUpload" />
                     <label for="avatar-upload-input" class="applicant-upload-btn applicant-upload-btn--avatar" title="Upload profile photo" aria-label="Upload profile photo">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M9 4.5a2.5 2.5 0 0 1 2.1-1.5h1.8A2.5 2.5 0 0 1 15 4.5L15.4 6H18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h2.6L9 4.5Zm3 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-1.8a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Z" />
@@ -84,6 +101,57 @@ else
                         </dl>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="dash-card applicant-profile-detail-card mt-3">
+            <div class="dash-card__head">
+                <h3 class="dash-card__title mb-0">Profile files</h3>
+            </div>
+            <div class="dash-card__body">
+                <p class="text-muted small mb-3">
+                    Avatar and cover are compressed in the browser (target ≤ 1 MB) before upload. The server enforces type and size again. PDFs are not compressed (max 10 MB). Files are stored in S3 when configured; metadata is in the API database.
+                </p>
+                <ul class="list-unstyled mb-0 applicant-file-rows">
+                    <li class="mb-3 pb-3 border-bottom">
+                        <div class="fw-semibold mb-1">Resume (PDF)</div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            @if (_resumeActive is not null)
+                            {
+                                <span class="text-muted small">@_resumeActive.OriginalFileName (@(_resumeActive.SizeBytes / 1024) KB)</span>
+                                @if (!string.IsNullOrEmpty(_resumeSignedUrl))
+                                {
+                                    <a class="btn btn-sm btn-outline-primary" href="@_resumeSignedUrl" target="_blank" rel="noopener noreferrer">Open</a>
+                                }
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled="@_busyUpload" @onclick="() => DeletePdfAsync(ApplicantFileCategory.ResumePdf)">Remove</button>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">No file uploaded.</span>
+                            }
+                            <InputFile id="resume-pdf-input" OnChange="OnResumePdfSelectedAsync" accept="application/pdf" class="form-control form-control-sm" style="max-width: 16rem;" disabled="@_busyUpload" />
+                        </div>
+                    </li>
+                    <li class="mb-0">
+                        <div class="fw-semibold mb-1">Additional CV (PDF)</div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            @if (_cvActive is not null)
+                            {
+                                <span class="text-muted small">@_cvActive.OriginalFileName (@(_cvActive.SizeBytes / 1024) KB)</span>
+                                @if (!string.IsNullOrEmpty(_cvSignedUrl))
+                                {
+                                    <a class="btn btn-sm btn-outline-primary" href="@_cvSignedUrl" target="_blank" rel="noopener noreferrer">Open</a>
+                                }
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled="@_busyUpload" @onclick="() => DeletePdfAsync(ApplicantFileCategory.CvPdf)">Remove</button>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">No file uploaded.</span>
+                            }
+                            <InputFile id="cv-pdf-input" OnChange="OnCvPdfSelectedAsync" accept="application/pdf" class="form-control form-control-sm" style="max-width: 16rem;" disabled="@_busyUpload" />
+                        </div>
+                    </li>
+                </ul>
             </div>
         </div>
 
@@ -132,18 +200,38 @@ else
 }
 
 @code {
-    private const long MaxUploadBytes = 5 * 1024 * 1024;
+    private sealed class JsCompressDto
+    {
+        [JsonPropertyName("base64")]
+        public string? Base64 { get; set; }
+
+        [JsonPropertyName("contentType")]
+        public string? ContentType { get; set; }
+
+        [JsonPropertyName("byteLength")]
+        public long ByteLength { get; set; }
+
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
+    }
+
+    private static readonly JsonSerializerOptions JsJson = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     private ApplicantDto? _applicant;
     private PersonProfileDto? _profile;
     private string? _error;
     private string? _uploadError;
-    private string? _avatarImageDataUrl;
-    private string? _coverImageDataUrl;
-
-    private string CoverStyle =>
-        string.IsNullOrWhiteSpace(_coverImageDataUrl)
-            ? string.Empty
-            : $"background-image: linear-gradient(130deg, rgba(30, 58, 95, 0.62), rgba(15, 40, 71, 0.45)), url('{_coverImageDataUrl}');";
+    private string? _storageHint;
+    private string? _avatarSignedUrl;
+    private string? _coverSignedUrl;
+    private ApplicantFileMetadataDto? _resumeActive;
+    private ApplicantFileMetadataDto? _cvActive;
+    private string? _resumeSignedUrl;
+    private string? _cvSignedUrl;
+    private bool _busyUpload;
 
     protected override async Task OnInitializedAsync()
     {
@@ -166,6 +254,8 @@ else
                 var profiles = await profilesTask.ConfigureAwait(false);
                 _profile = profiles?.FirstOrDefault(p => p.Id == pid);
             }
+
+            await RefreshStorageStateAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -173,60 +263,317 @@ else
         }
     }
 
-    private async Task OnAvatarSelectedAsync(InputFileChangeEventArgs e)
+    private async Task RefreshStorageStateAsync()
     {
-        _avatarImageDataUrl = await ReadImageAsDataUrlAsync(e.File).ConfigureAwait(false);
+        _storageHint = null;
+        _avatarSignedUrl = null;
+        _coverSignedUrl = null;
+        _resumeActive = null;
+        _cvActive = null;
+        _resumeSignedUrl = null;
+        _cvSignedUrl = null;
+
+        if (_applicant is null)
+        {
+            return;
+        }
+
+        var (files, err) = await Api.GetApplicantFilesAsync(_applicant.Id).ConfigureAwait(false);
+        if (err is not null)
+        {
+            _storageHint = err;
+            return;
+        }
+
+        var avatar = files?.FirstOrDefault(f => f.IsActive && f.Category == ApplicantFileCategory.Avatar);
+        var cover = files?.FirstOrDefault(f => f.IsActive && f.Category == ApplicantFileCategory.Cover);
+        _resumeActive = files?.FirstOrDefault(f => f.IsActive && f.Category == ApplicantFileCategory.ResumePdf);
+        _cvActive = files?.FirstOrDefault(f => f.IsActive && f.Category == ApplicantFileCategory.CvPdf);
+
+        var tasks = new List<Task>();
+        if (avatar is not null)
+        {
+            tasks.Add(SetSignedUrlAsync(avatar.Id, url => _avatarSignedUrl = url));
+        }
+
+        if (cover is not null)
+        {
+            tasks.Add(SetSignedUrlAsync(cover.Id, url => _coverSignedUrl = url));
+        }
+
+        if (_resumeActive is not null)
+        {
+            tasks.Add(SetSignedUrlAsync(_resumeActive.Id, url => _resumeSignedUrl = url));
+        }
+
+        if (_cvActive is not null)
+        {
+            tasks.Add(SetSignedUrlAsync(_cvActive.Id, url => _cvSignedUrl = url));
+        }
+
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task OnCoverSelectedAsync(InputFileChangeEventArgs e)
+    private async Task SetSignedUrlAsync(Guid fileId, Action<string> assign)
     {
-        _coverImageDataUrl = await ReadImageAsDataUrlAsync(e.File).ConfigureAwait(false);
-        await InvokeAsync(StateHasChanged);
+        if (_applicant is null)
+        {
+            return;
+        }
+
+        var (body, _) = await Api.GetApplicantFileDownloadUrlAsync(_applicant.Id, fileId).ConfigureAwait(false);
+        if (body?.Url is { } u)
+        {
+            assign(u);
+        }
     }
 
-    private async Task<string?> ReadImageAsDataUrlAsync(IBrowserFile? file)
+    private Task OnResumePdfSelectedAsync(InputFileChangeEventArgs e) =>
+        OnPdfSelectedAsync(ApplicantFileCategory.ResumePdf, e.File);
+
+    private Task OnCvPdfSelectedAsync(InputFileChangeEventArgs e) =>
+        OnPdfSelectedAsync(ApplicantFileCategory.CvPdf, e.File);
+
+    private async Task OnPdfSelectedAsync(ApplicantFileCategory category, IBrowserFile? file)
     {
         _uploadError = null;
-        if (file is null)
+        if (_applicant is null || file is null)
         {
-            return null;
+            return;
         }
 
-        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        var effectivePdfType = ApplicantFilePolicy.IsPdfContentType(file.ContentType)
+            ? file.ContentType
+            : file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+                ? ApplicantFilePolicy.PdfContentType
+                : null;
+
+        if (effectivePdfType is null)
         {
-            _uploadError = "Please upload an image file only.";
-            return null;
+            _uploadError = "Please upload a PDF file (.pdf).";
+            return;
         }
 
-        if (file.Size > MaxUploadBytes)
+        if (file.Size > ApplicantFilePolicy.MaxPdfBytes)
         {
-            _uploadError = "Image is too large. Max size is 5 MB.";
-            return null;
+            _uploadError = $"PDF is too large (max {ApplicantFilePolicy.MaxPdfBytes / (1024 * 1024)} MB).";
+            return;
         }
 
+        _busyUpload = true;
         try
         {
-            await using var stream = file.OpenReadStream(MaxUploadBytes);
+            await using var stream = file.OpenReadStream(ApplicantFilePolicy.MaxPdfBytes);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms).ConfigureAwait(false);
             var bytes = ms.ToArray();
-            return $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+            await RunPresignedUploadAsync(category, file.Name, ApplicantFilePolicy.NormalizeContentType(effectivePdfType), bytes).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            _uploadError = "Could not read this image. Try another file.";
-            return null;
+            _uploadError = ex.Message;
         }
+        finally
+        {
+            _busyUpload = false;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    private async Task DeletePdfAsync(ApplicantFileCategory category)
+    {
+        _uploadError = null;
+        if (_applicant is null)
+        {
+            return;
+        }
+
+        var meta = category == ApplicantFileCategory.ResumePdf ? _resumeActive : _cvActive;
+        if (meta is null)
+        {
+            return;
+        }
+
+        _busyUpload = true;
+        try
+        {
+            var (ok, err) = await Api.DeleteApplicantFileAsync(_applicant.Id, meta.Id).ConfigureAwait(false);
+            if (!ok)
+            {
+                _uploadError = err ?? "Delete failed.";
+                return;
+            }
+
+            await RefreshStorageStateAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _busyUpload = false;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    private async Task OnAvatarSelectedAsync(InputFileChangeEventArgs e) =>
+        await UploadProfileImageAsync(ApplicantFileCategory.Avatar, e.File).ConfigureAwait(false);
+
+    private async Task OnCoverSelectedAsync(InputFileChangeEventArgs e) =>
+        await UploadProfileImageAsync(ApplicantFileCategory.Cover, e.File).ConfigureAwait(false);
+
+    private async Task UploadProfileImageAsync(ApplicantFileCategory category, IBrowserFile? file)
+    {
+        _uploadError = null;
+        if (_applicant is null || file is null)
+        {
+            return;
+        }
+
+        if (!ApplicantFilePolicy.IsAllowedImageContentType(file.ContentType))
+        {
+            _uploadError = "Please choose a JPEG, PNG, or WebP image.";
+            return;
+        }
+
+        if (file.Size > ApplicantFilePolicy.MaxRawImagePickerBytes)
+        {
+            _uploadError = $"Image is too large before compression (max {ApplicantFilePolicy.MaxRawImagePickerBytes / (1024 * 1024)} MB).";
+            return;
+        }
+
+        _busyUpload = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(ApplicantFilePolicy.MaxRawImagePickerBytes);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms).ConfigureAwait(false);
+            var raw = ms.ToArray();
+            var base64 = Convert.ToBase64String(raw);
+
+            var compressOpts = new
+            {
+                maxEdge = ApplicantFilePolicy.MaxImageLongEdgePixels,
+                maxBytes = ApplicantFilePolicy.TargetCompressedImageBytes,
+            };
+
+            var json = await Js.InvokeAsync<string>(
+                    "hrisApplicantImages.compressBase64Json",
+                    base64,
+                    file.ContentType,
+                    compressOpts)
+                .ConfigureAwait(false);
+
+            var dto = JsonSerializer.Deserialize<JsCompressDto>(json, JsJson);
+            if (dto?.Error is { } jsErr)
+            {
+                _uploadError = jsErr;
+                return;
+            }
+
+            if (dto?.Base64 is null || string.IsNullOrWhiteSpace(dto.ContentType))
+            {
+                _uploadError = "Image compression did not return usable output.";
+                return;
+            }
+
+            var compressed = Convert.FromBase64String(dto.Base64);
+            if (compressed.LongLength > ApplicantFilePolicy.MaxServerImageBytes)
+            {
+                _uploadError = "Compressed image still exceeds the server limit. Try a smaller photo.";
+                return;
+            }
+
+            await RunPresignedUploadAsync(
+                    category,
+                    file.Name,
+                    ApplicantFilePolicy.NormalizeContentType(dto.ContentType),
+                    compressed)
+                .ConfigureAwait(false);
+        }
+        catch (JSException jx)
+        {
+            _uploadError = jx.Message;
+        }
+        catch (Exception ex)
+        {
+            _uploadError = ex.Message;
+        }
+        finally
+        {
+            _busyUpload = false;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RunPresignedUploadAsync(ApplicantFileCategory category, string originalName, string contentType, byte[] bytes)
+    {
+        if (_applicant is null)
+        {
+            return;
+        }
+
+        var applicantId = _applicant.Id;
+        var (upload, errUrl) = await Api.RequestApplicantFileUploadUrlAsync(
+                applicantId,
+                new ApplicantFileUploadUrlRequest
+                {
+                    Category = category,
+                    FileName = originalName,
+                    ContentType = contentType,
+                    SizeBytes = bytes.LongLength,
+                })
+            .ConfigureAwait(false);
+
+        if (upload is null)
+        {
+            _uploadError = errUrl ?? "Could not request upload URL.";
+            return;
+        }
+
+        var putErr = await RspDemoApiService.PutToPresignedUrlAsync(upload.UploadUrl, bytes, upload.RequiredHeaders)
+            .ConfigureAwait(false);
+        if (putErr is not null)
+        {
+            _uploadError = putErr;
+            return;
+        }
+
+        var (_, errDone) = await Api.CompleteApplicantFileUploadAsync(
+                applicantId,
+                new ApplicantFileCompleteRequest
+                {
+                    ObjectKey = upload.ObjectKey,
+                    OriginalFileName = originalName,
+                    ContentType = contentType,
+                    Category = category,
+                })
+            .ConfigureAwait(false);
+
+        if (errDone is not null)
+        {
+            _uploadError = errDone;
+            return;
+        }
+
+        await RefreshStorageStateAsync().ConfigureAwait(false);
     }
 
     private static string Initials(string name)
     {
         var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length == 0)
+        {
             return "?";
+        }
+
         if (parts.Length == 1)
+        {
             return parts[0].Length >= 2 ? parts[0][..2].ToUpperInvariant() : parts[0].ToUpperInvariant();
+        }
+
         return string.Concat(parts[0][0], parts[^1][0]).ToUpperInvariant();
     }
 }
