@@ -127,6 +127,6 @@ public sealed class GeminiJobDescriptionGenerator(
             m = m["models/".Length..];
         }
 
-        return string.IsNullOrEmpty(m) ? "gemini-3.6-flash" : m;
+        return string.IsNullOrEmpty(m) ? "gemini-3.5-flash-lite" : m;
     }
 }

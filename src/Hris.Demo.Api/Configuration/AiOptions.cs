@@ -32,8 +32,8 @@ public sealed class AiGeminiOptions
 {
     public string ApiKey { get; set; } = "";
 
-    /// <summary>Model id segment for v1beta generateContent (no "models/" prefix), e.g. gemini-2.0-flash</summary>
-    public string Model { get; set; } = "gemini-3.6-flash";
+    /// <summary>Model id segment for v1beta generateContent (no "models/" prefix), e.g. gemini-x.x-flash</summary>
+    public string Model { get; set; } = "gemini-3.5-flash-lite";
 }
 
 public sealed class AiJobDescriptionOptions
