@@ -14,10 +14,10 @@
 
 @if (!collapseNavMenu)
 {
-    <button type="button" class="nav-mobile-backdrop" aria-label="Close navigation" @onclick="ToggleNavMenu"></button>
+    <button type="button" class="nav-mobile-backdrop" aria-label="Close navigation" @onclick="CloseNavMenu"></button>
 }
 
-<div class="@($"{NavMenuCssClass} nav-scrollable {(IsCollapsed ? "is-collapsed" : string.Empty)}")" @onclick="ToggleNavMenu">
+<div class="@($"{NavMenuCssClass} nav-scrollable {(IsCollapsed ? "is-collapsed" : string.Empty)}")" @onclick="CloseNavMenu">
     <nav class="nav flex-column">
         @if (IsApplicantView)
         {
@@ -115,5 +115,10 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void CloseNavMenu()
+    {
+        collapseNavMenu = true;
     }
 }
