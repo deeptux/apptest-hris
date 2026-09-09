@@ -219,10 +219,12 @@
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
+        pointer-events: none;
     }
 
     .nav-mobile-backdrop {
         display: none !important;
+        pointer-events: none;
     }
 
     .collapse {

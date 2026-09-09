@@ -1,4 +1,6 @@
 ﻿@inject BrandingOptions Branding
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -6,7 +8,7 @@
             <span class="brand-chevron" aria-hidden="true">@(IsCollapsed ? "›" : "‹")</span>
             <span class="brand-label">@(IsCollapsed ? "H" : Branding.ProductName)</span>
         </button>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+        <button type="button" title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu" @onclick:stopPropagation="true">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
@@ -17,7 +19,7 @@
     <button type="button" class="nav-mobile-backdrop" aria-label="Close navigation" @onclick="CloseNavMenu"></button>
 }
 
-<div class="@($"{NavMenuCssClass} nav-scrollable {(IsCollapsed ? "is-collapsed" : string.Empty)}")" @onclick="CloseNavMenu">
+<div class="@($"{NavMenuCssClass} nav-scrollable {(IsCollapsed ? "is-collapsed" : string.Empty)}")">
     <nav class="nav flex-column">
         @if (IsApplicantView)
         {
@@ -112,6 +114,11 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
@@ -120,5 +127,21 @@
     private void CloseNavMenu()
     {
         collapseNavMenu = true;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (collapseNavMenu)
+        {
+            return;
+        }
+
+        collapseNavMenu = true;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }
